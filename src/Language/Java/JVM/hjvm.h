@@ -5,25 +5,27 @@
 
 typedef void (eventCallback)(jint index,jobject event);
 
-struct runtime {
+struct runtime_  {
 	JavaVM *jvm;
 	JNIEnv *env;
-};
+} ;
 
-int start(char* classpath,eventCallback f);
+typedef struct runtime_ *runtime;
 
-void end();
+runtime start(char* classpath,eventCallback f);
 
-jclass findClass(const char *name);
+void end(runtime rt);
 
-jobject newObject(const jclass cls, const char *signature,const jvalue *args);
+jclass findClass(const runtime rt,const char *name);
 
-jint callIntMethod(const jobject obj,const char *method,const char *signature,const jvalue *args);
+jobject newObject(const runtime rt,const jclass cls, const char *signature,const jvalue *args);
 
-void callVoidMethod(const jobject obj,const char *method,const char *signature,const jvalue *args);
+jint callIntMethod(const runtime rt,const jobject obj,const char *method,const char *signature,const jvalue *args);
 
-jboolean callBooleanMethod(const jobject obj,const char *method,const char *signature,const jvalue *args);
+void callVoidMethod(const runtime rt,const jobject obj,const char *method,const char *signature,const jvalue *args);
 
-jstring newString(const jchar *unicode, jsize len);
+jboolean callBooleanMethod(const runtime rt,const jobject obj,const char *method,const char *signature,const jvalue *args);
+
+jstring newString(const runtime rt,const jchar *unicode, jsize len);
 
 #endif

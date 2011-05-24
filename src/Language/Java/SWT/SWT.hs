@@ -8,17 +8,18 @@ import Control.Monad
 import Foreign.C
 
 
-displayLoop :: JObjectPtr -> JObjectPtr -> IO()
-displayLoop display shell= do
-       shellIsDisposed<-booleanMethod shell "isDisposed" "()Z" []
-       when (not shellIsDisposed) (do 
-                displayDispatch<-booleanMethod display "readAndDispatch" "()Z" []
-                when (not displayDispatch) (
-                        voidMethod display "sleep" "()V" []
-                     )
-                displayLoop display shell
-           )
-       return ()  
+displayLoop :: JObjectPtr -> JObjectPtr -> JavaT()
+displayLoop display shell= 
+       do
+               shellIsDisposed<-booleanMethod shell "isDisposed" "()Z" []
+               when (not shellIsDisposed) (do 
+                        displayDispatch<-booleanMethod display "readAndDispatch" "()Z" []
+                        when (not displayDispatch) (
+                                voidMethod display "sleep" "()V" []
+                             )
+                        displayLoop display shell
+                   )
+
 
 push :: CLong
 push = 8

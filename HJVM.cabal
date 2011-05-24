@@ -7,7 +7,7 @@ data-files:         bin/Language/Java/SWT/NativeListener.class
 executable hjvm
   main-is:            Main.hs
   hs-source-dirs:     src 
-  build-depends:      base, containers
+  build-depends:      base, containers, mtl
   other-modules:      Language.Java.JVM.API, Language.Java.JVM.Types, Language.Java.SWT.SWT, Language.Java.SWT.Test.ButtonTest
   includes:           src/Language/Java/JVM/hjvm.h
   c-sources:          src/Language/Java/JVM/hjvm.c

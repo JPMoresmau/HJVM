@@ -5,11 +5,14 @@ module Language.Java.JVM.Types where
 import Foreign.C
 import Foreign.Ptr
 import Foreign.Storable
+import Control.Monad.State
 
 data JObject
 type JObjectPtr=Ptr JObject
 data JClass
 type JClassPtr=Ptr JClass
+data JRuntime
+type JRuntimePtr=Ptr JRuntime
 
 data JValue=JObj JObjectPtr
         | JInt CLong
@@ -37,6 +40,6 @@ instance Storable JValue where
         poke p (JDouble d)= poke (castPtr p) d
         peek=error "undefined peek"
 
-
+type JavaT a= (StateT JRuntimePtr IO) a
 
  
