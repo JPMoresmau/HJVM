@@ -32,7 +32,7 @@ withJava :: String -> (CLong -> JObjectPtr -> IO()) -> JavaT a -> IO (a)
 withJava options event f= do
       eventW<-wrap event
       ret<-withCString options (\s->f_start s eventW)
-      when (ret == nullPtr) (error "could not start JVM")
+      when (ret == nullPtr) (ioError $ userError "could not start JVM")
       (a,rt)<-runStateT f ret
       f_end rt
       return a
