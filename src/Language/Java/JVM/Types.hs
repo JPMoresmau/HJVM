@@ -1,4 +1,4 @@
-{-# LANGUAGE ,ForeignFunctionInterface, EmptyDataDecls #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
 
 module Language.Java.JVM.Types where
 
@@ -24,20 +24,19 @@ data JValue=JObj JObjectPtr
 type JValuePtr=Ptr JValue
 
 instance Storable JValue where
-        sizeOf _= #size jvalue
+        sizeOf _= 8
         alignment a=alignment (undefined :: CDouble)
-        poke p (JObj l)= poke p l
-        poke p (JInt i)= (poke p i
-        poke p (JBool z)= poke p z
-        poke p (JByte b)= poke p b
-        poke p (JChar c)= poke p c
-        poke p (JShort s)= poke p s
-        poke p (JLong j)= poke p j
-        poke p (JFloat f)= poke p f
-        poke p (JDouble d)= poke p d
+        poke p (JObj l)= poke (castPtr p) l
+        poke p (JInt i)= poke (castPtr p) i
+        poke p (JBool z)= poke (castPtr p) z
+        poke p (JByte b)= poke (castPtr p) b
+        poke p (JChar c)= poke (castPtr p) c
+        poke p (JShort s)= poke (castPtr p) s
+        poke p (JLong j)= poke (castPtr p) j
+        poke p (JFloat f)= poke (castPtr p) f
+        poke p (JDouble d)= poke (castPtr p) d
         peek=error "undefined peek"
 
-data JNIEnv
 
 
  
