@@ -1,26 +1,27 @@
 #include <jni.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "hjvm.h"
 
 
-eventCallback *eventCb;
+/*eventCallback *eventCb;
 
 void event(JNIEnv *env, jobject listener,jint index,jobject event){
 	eventCb(index,event);
-}
+}*/
 
-runtime start(char* classpath,eventCallback f){
+runtime start(char* classpath){
      jint res;
      JNIEnv *env;
      JavaVM *jvm;
      JavaVMInitArgs vm_args;
      JavaVMOption options[1];
-     runtime rt=(runtime)malloc(sizeof(runtime*)) ;
+     runtime rt=(runtime)malloc(sizeof(runtime*));
 
      jclass nativeListener;
-     JNINativeMethod methods[] = {{ "nativeEvent", "(ILorg/eclipse/swt/widgets/Event;)V", &event } };
+
 
      options[0].optionString =classpath;
      vm_args.version = JNI_VERSION_1_4; //0x00010002;
@@ -36,15 +37,44 @@ runtime start(char* classpath,eventCallback f){
 
 	 rt->env=env;
 	 rt->jvm=jvm;
-	 eventCb=f;
+	// eventCb=f;
 
-	 nativeListener=findClass(rt,"Language/Java/SWT/NativeListener");
-	 (*env)->RegisterNatives(env,nativeListener, methods, 1);
+	// nativeListener=findClass(rt,"Language/Java/SWT/NativeListener");
+	// (*env)->RegisterNatives(env,nativeListener, methods, 1);
 
 
 	 return rt;
 }
 
+void registerCallback(const runtime rt,const char *clsName,const char *methodName,const char *eventClsName,eventCallback f){
+	int length=3+(strlen(eventClsName))+3;
+	char *signature;
+	jclass cls;
+	JNINativeMethod methods[1] ;
+	JNINativeMethod* m=malloc(sizeof(JNINativeMethod));
+	char *methodcpy=(char *)malloc(sizeof(char) * (strlen(methodName)+1));
+
+	cls=findClass(rt,clsName);
+
+	methodcpy=
+	strcpy(methodcpy,methodName);
+
+	signature = (char *)malloc(sizeof(char) * (length+1));
+	strcpy(signature,"(IL");
+	strcat(signature,eventClsName);
+	strcat(signature,";)V");
+
+	m->name= methodcpy;
+	m->signature= signature;
+	m->fnPtr= f;
+	methods[0]=*m;
+
+	(*rt->env)->RegisterNatives(rt->env, cls,methods,1);
+
+	free(m);
+	free(methodcpy);
+	free(signature);
+}
 
 void end(runtime rt){
 	 (*rt->jvm)->DestroyJavaVM(rt->jvm);

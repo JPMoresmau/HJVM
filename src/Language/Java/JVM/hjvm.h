@@ -3,7 +3,7 @@
 #ifndef HJVM_H
 #define HJVM_H
 
-typedef void (eventCallback)(jint index,jobject event);
+typedef void (*eventCallback)(JNIEnv *env, jobject listener,jint index,jobject event);
 
 struct runtime_  {
 	JavaVM *jvm;
@@ -12,11 +12,13 @@ struct runtime_  {
 
 typedef struct runtime_ *runtime;
 
-runtime start(char* classpath,eventCallback f);
+runtime start(char* classpath);
 
 void end(runtime rt);
 
 jclass findClass(const runtime rt,const char *name);
+
+void registerCallback(const runtime rt,const char *clsName,const char *methodName,const char *eventClsName,eventCallback f);
 
 jobject newObject(const runtime rt,const jclass cls, const char *signature,const jvalue *args);
 

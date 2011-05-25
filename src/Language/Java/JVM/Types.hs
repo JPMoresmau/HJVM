@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FunctionalDependencies #-}
 
 module Language.Java.JVM.Types where
 
@@ -6,6 +6,8 @@ import Foreign.C
 import Foreign.Ptr
 import Foreign.Storable
 import Control.Monad.State
+import qualified Data.Map as Map
+import Control.Concurrent.MVar
 
 data JObject
 type JObjectPtr=Ptr JObject
@@ -13,6 +15,16 @@ data JClass
 type JClassPtr=Ptr JClass
 data JRuntime
 type JRuntimePtr=Ptr JRuntime
+
+data JEnv
+type JEnvPtr=Ptr JEnv
+
+type CallbackInternal=(JEnvPtr -> JObjectPtr -> CLong -> JObjectPtr -> IO())
+
+type Callback = (JObjectPtr -> JavaT ())
+
+type CallbackMap = Map.Map CLong Callback
+type CallbackMapRef =MVar CallbackMap
 
 data JValue=JObj JObjectPtr
         | JInt CLong
@@ -40,6 +52,14 @@ instance Storable JValue where
         poke p (JDouble d)= poke (castPtr p) d
         peek=error "undefined peek"
 
+
 type JavaT a= (StateT JRuntimePtr IO) a
 
- 
+class (Monad m, MonadIO m) => WithJava m where
+        withJavaRT  :: (JRuntimePtr -> IO (a)) -> m a 
+        
+instance WithJava (StateT JRuntimePtr IO) where
+        withJavaRT f = do
+                rt<-get
+                r<-liftIO $ f rt
+                return r
