@@ -1,6 +1,8 @@
 
 module Language.Java.SWT.Test.ButtonTest where
 
+import Paths_HJVM
+
 import Control.Monad
 import Control.Monad.State
 import qualified Data.Map as Map
@@ -17,11 +19,16 @@ import Foreign.Marshal.Array
 import Foreign.Storable
 import Control.Concurrent.MVar
 
+import System.FilePath
+
 main = do
       count<-newMVar 0
       --eventW<-wrap (event ior)
       --ret<-withCString "-Djava.class.path=bin;d:/dev/java/eclipse/plugins/org.eclipse.swt.win32.win32.x86_3.5.2.v3557f.jar" (\s->start s eventW)
-      withSWT "-Djava.class.path=bin;d:/dev/java/eclipse/plugins/org.eclipse.swt.win32.win32.x86_3.5.2.v3557f.jar" (do
+      bin <- getDataDir
+      let cp=bin ++ [searchPathSeparator] ++ "d:/dev/java/eclipse/plugins/org.eclipse.swt.win32.win32.x86_3.5.2.v3557f.jar"
+      putStrLn cp
+      withSWT ("-Djava.class.path="++cp) (do
       --putStrLn (show ret)
       --when (ret>(-1)) (do
           displayCls<- findClass "org/eclipse/swt/widgets/Display"

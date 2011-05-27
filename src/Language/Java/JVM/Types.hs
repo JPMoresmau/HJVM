@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FunctionalDependencies #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, TypeSynonymInstances #-}
 
 module Language.Java.JVM.Types where
 
@@ -53,12 +53,12 @@ instance Storable JValue where
         peek=error "undefined peek"
 
 
-type JavaT a= (StateT JRuntimePtr IO) a
-
+type JavaT =StateT JRuntimePtr IO
+     
 class (Monad m, MonadIO m) => WithJava m where
         withJavaRT  :: (JRuntimePtr -> IO (a)) -> m a 
         
-instance WithJava (StateT JRuntimePtr IO) where
+instance WithJava JavaT where
         withJavaRT f = do
                 rt<-get
                 r<-liftIO $ f rt
