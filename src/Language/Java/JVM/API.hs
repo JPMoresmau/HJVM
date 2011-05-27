@@ -9,9 +9,7 @@ import qualified Data.Map as Map
 
 import Foreign.C
 import Foreign.Ptr
-import Foreign.Marshal.Alloc
 import Foreign.Marshal.Array
-import Foreign.Storable
 import Control.Concurrent.MVar
 
 

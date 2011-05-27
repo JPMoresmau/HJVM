@@ -40,7 +40,7 @@ type JValuePtr=Ptr JValue
 
 instance Storable JValue where
         sizeOf _= 8
-        alignment a=alignment (undefined :: CDouble)
+        alignment _=alignment (undefined :: CDouble)
         poke p (JObj l)= poke (castPtr p) l
         poke p (JInt i)= poke (castPtr p) i
         poke p (JBool z)= poke (castPtr p) z
