@@ -57,7 +57,7 @@ type JavaVMInitArgsHandle = Ptr JavaVMInitArgs
 main = do
     ret<-alloca (\jvm-> alloca (\env-> alloca (\args->createJavaVM jvm env args)))
     putStrLn (show ret)--}
-	
+        
 --main = do
 --    ret<-withCString "-Djava.class.path=bin" start
 --    putStrLn (show ret)

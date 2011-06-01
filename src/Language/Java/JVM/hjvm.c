@@ -12,49 +12,65 @@ void event(JNIEnv *env, jobject listener,jint index,jobject event){
 	eventCb(index,event);
 }*/
 
-runtime start(char* classpath){
+JavaVM *getJVM(){
+	JavaVM *jvm;
+	jsize vmnb;
+	JNI_GetCreatedJavaVMs(&jvm,1,&vmnb);
+	return jvm;
+}
+
+JNIEnv* getEnv(JavaVM *jvm){
+	JNIEnv *env;
+	(*jvm)->AttachCurrentThread(jvm,(void**)&env,NULL);
+	return env;
+}
+
+jint start(char* classpath){
      jint res;
      JNIEnv *env;
      JavaVM *jvm;
      JavaVMInitArgs vm_args;
      JavaVMOption options[1];
-     runtime rt=(runtime)malloc(sizeof(runtime*));
+     jsize vmnb;
+     //runtime rt=(runtime)malloc(sizeof(runtime*));
+     //jclass nativeListener;
+     res = JNI_GetCreatedJavaVMs(&jvm,1,&vmnb);
+     if (res<0){
+    	 return res;
+     }
+     if (vmnb<1){
 
-     jclass nativeListener;
-
-
-     options[0].optionString =classpath;
-     vm_args.version = JNI_VERSION_1_4; //0x00010002;
-     vm_args.options = options;
-     vm_args.nOptions = 1;
-     vm_args.ignoreUnrecognized = JNI_FALSE;
-     /* Create the Java VM */
-     res = JNI_CreateJavaVM(&jvm, (void**)&env, &vm_args);
-
-	 if (res<0){
-		 return NULL;
-	 }
-
-	 rt->env=env;
-	 rt->jvm=jvm;
+		 options[0].optionString =classpath;
+		 vm_args.version = JNI_VERSION_1_4; //0x00010002;
+		 vm_args.options = options;
+		 vm_args.nOptions = 1;
+		 vm_args.ignoreUnrecognized = JNI_TRUE;
+		 /* Create the Java VM */
+		 return JNI_CreateJavaVM(&jvm, (void**)&env, &vm_args);
+     }
+//	 if (res<0){
+//		 return NULL;
+//	 }
+	// rt->env=env;
+	// rt->jvm=jvm;
 	// eventCb=f;
 
 	// nativeListener=findClass(rt,"Language/Java/SWT/NativeListener");
 	// (*env)->RegisterNatives(env,nativeListener, methods, 1);
 
 
-	 return rt;
+	 return 0;
 }
 
-void registerCallback(const runtime rt,const char *clsName,const char *methodName,const char *eventClsName,eventCallback f){
+void registerCallback(const char *clsName,const char *methodName,const char *eventClsName,eventCallback f){
 	int length=3+(strlen(eventClsName))+3;
 	char *signature;
 	jclass cls;
 	JNINativeMethod methods[1] ;
 	JNINativeMethod* m=malloc(sizeof(JNINativeMethod));
 	char *methodcpy=(char *)malloc(sizeof(char) * (strlen(methodName)+1));
-
-	cls=findClass(rt,clsName);
+	JNIEnv *env=getEnv(getJVM());
+	cls=findClass(clsName);
 
 	methodcpy=
 	strcpy(methodcpy,methodName);
@@ -69,82 +85,90 @@ void registerCallback(const runtime rt,const char *clsName,const char *methodNam
 	m->fnPtr= f;
 	methods[0]=*m;
 
-	(*rt->env)->RegisterNatives(rt->env, cls,methods,1);
+	(*env)->RegisterNatives(env, cls,methods,1);
 
 	free(m);
 	free(methodcpy);
 	free(signature);
 }
 
-void end(runtime rt){
-	 (*rt->jvm)->DestroyJavaVM(rt->jvm);
-	 free(rt);
+void end(){
+	JavaVM* jvm=getJVM();
+	(*jvm)->DestroyJavaVM(jvm);
+//	free(rt->env);
+//	free(rt);
 }
 
-jclass findClass(const runtime rt,const char *name){
-	return (*rt->env)->FindClass(rt->env, name);
+jclass findClass(const char *name){
+	JNIEnv *env=getEnv(getJVM());
+	return (*env)->FindClass(env, name);
 }
 
-jobject newObject(const runtime rt,const jclass cls, const char *signature,const jvalue *args){
+jobject newObject(const jclass cls, const char *signature,const jvalue *args){
+	JNIEnv *env=getEnv(getJVM());
 	jmethodID mid;
     if (cls == NULL) {
          return NULL;
     }
-    mid = (*rt->env)->GetMethodID(rt->env, cls, "<init>",
+    mid = (*env)->GetMethodID(env, cls, "<init>",
     		signature);
     if (mid == NULL){
     	return NULL;
     }
-    return (*rt->env)->NewObjectA(rt->env,cls,mid,args);
+    return (*env)->NewObjectA(env,cls,mid,args);
 }
 
 
-jmethodID getMethodID(const runtime rt,const jobject obj,const char *method,const char *signature){
+jmethodID getMethodID(JNIEnv *env,const jobject obj,const char *method,const char *signature){
 	jclass cls;
 	jmethodID mid;
 	if (obj==NULL){
 		return NULL;
 	}
-	cls=(*rt->env)->GetObjectClass(rt->env, obj);
+	cls=(*env)->GetObjectClass(env, obj);
 	if (cls==NULL){
 		return NULL;
 	}
-	mid = (*rt->env)->GetMethodID(rt->env, cls, method,
+	mid = (*env)->GetMethodID(env, cls, method,
 										 signature);
 	return mid;
 }
 
-jint callIntMethod(const runtime rt,const jobject obj,const char *method,const char *signature,const jvalue *args){
+jint callIntMethod(const jobject obj,const char *method,const char *signature,const jvalue *args){
+	JNIEnv *env=getEnv(getJVM());
 	jmethodID mid;
 	jint ret;
-	mid=getMethodID(rt,obj,method,signature);
+	mid=getMethodID(env,obj,method,signature);
 	if (mid!=NULL){
-		ret= (*rt->env)-> CallIntMethodA (rt->env,obj,mid,args);
+		ret= (*env)-> CallIntMethodA (env,obj,mid,args);
 	}
 	return ret;
 }
 
-jboolean callBooleanMethod(const runtime rt,const jobject obj,const char *method,const char *signature,const jvalue *args){
+jboolean callBooleanMethod(const jobject obj,const char *method,const char *signature,const jvalue *args){
+	JNIEnv *env=getEnv(getJVM());
 	jmethodID mid;
 	jboolean ret;
-	mid=getMethodID(rt,obj,method,signature);
+	mid=getMethodID(env,obj,method,signature);
 	if (mid!=NULL){
-		ret= (*rt->env)-> CallBooleanMethodA (rt->env,obj,mid,args);
+		ret= (*env)-> CallBooleanMethodA (env,obj,mid,args);
 	}
 	return ret;
 }
 
 
-void callVoidMethod(const runtime rt,const jobject obj,const char *method,const char *signature,const jvalue *args){
+void callVoidMethod(const jobject obj,const char *method,const char *signature,const jvalue *args){
+	JNIEnv *env=getEnv(getJVM());
 	jmethodID mid;
-	mid=getMethodID(rt,obj,method,signature);
+	mid=getMethodID(env,obj,method,signature);
 	if (mid!=NULL){
-		(*rt->env)-> CallVoidMethodA (rt->env,obj,mid,args);
+		(*env)-> CallVoidMethodA (env,obj,mid,args);
 	}
 }
 
-jstring newString(const runtime rt,const jchar *unicode, jsize len){
-	return (*rt->env)->NewString(rt->env,unicode,len);
+jstring newString(const jchar *unicode, jsize len){
+	JNIEnv *env=getEnv(getJVM());
+	return (*env)->NewString(env,unicode,len);
 }
 
 /*

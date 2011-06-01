@@ -13,15 +13,15 @@ data JObject
 type JObjectPtr=Ptr JObject
 data JClass
 type JClassPtr=Ptr JClass
-data JRuntime
-type JRuntimePtr=Ptr JRuntime
+--data JRuntime
+--type JRuntimePtr=Ptr JRuntime
 
-data JEnv
-type JEnvPtr=Ptr JEnv
+--data JEnv
+--type JEnvPtr=Ptr JEnv
 
-type CallbackInternal=(JEnvPtr -> JObjectPtr -> CLong -> JObjectPtr -> IO())
+type CallbackInternal=(JObjectPtr -> CLong -> JObjectPtr -> IO())
 
-type Callback = (JObjectPtr -> JavaT ())
+type Callback = (JObjectPtr -> IO ())
 
 type CallbackMap = Map.Map CLong Callback
 type CallbackMapRef =MVar CallbackMap
@@ -53,13 +53,13 @@ instance Storable JValue where
         peek=error "undefined peek"
 
 
-type JavaT =StateT JRuntimePtr IO
-     
-class (Monad m, MonadIO m) => WithJava m where
-        withJavaRT  :: (JRuntimePtr -> IO (a)) -> m a 
-        
-instance WithJava JavaT where
-        withJavaRT f = do
-                rt<-get
-                r<-liftIO $ f rt
-                return r
+--type JavaT =StateT JRuntimePtr IO
+--     
+--class (Monad m, MonadIO m) => WithJava m where
+--        withJavaRT  :: (JRuntimePtr -> IO (a)) -> m a 
+--        
+--instance WithJava JavaT where
+--        withJavaRT f = do
+--                rt<-get
+--                r<-liftIO $ f rt
+--                return r

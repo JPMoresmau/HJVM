@@ -5,29 +5,29 @@
 
 typedef void (*eventCallback)(JNIEnv *env, jobject listener,jint index,jobject event);
 
-struct runtime_  {
+/*struct runtime_  {
 	JavaVM *jvm;
 	JNIEnv *env;
-} ;
+} ;*/
 
-typedef struct runtime_ *runtime;
+//typedef struct runtime_ *runtime;
 
-runtime start(char* classpath);
+jint start(char* classpath);
 
-void end(runtime rt);
+void end();
 
-jclass findClass(const runtime rt,const char *name);
+jclass findClass(const char *name);
 
-void registerCallback(const runtime rt,const char *clsName,const char *methodName,const char *eventClsName,eventCallback f);
+void registerCallback(const char *clsName,const char *methodName,const char *eventClsName,eventCallback f);
 
-jobject newObject(const runtime rt,const jclass cls, const char *signature,const jvalue *args);
+jobject newObject(const jclass cls, const char *signature,const jvalue *args);
 
-jint callIntMethod(const runtime rt,const jobject obj,const char *method,const char *signature,const jvalue *args);
+jint callIntMethod(const jobject obj,const char *method,const char *signature,const jvalue *args);
 
-void callVoidMethod(const runtime rt,const jobject obj,const char *method,const char *signature,const jvalue *args);
+void callVoidMethod(const jobject obj,const char *method,const char *signature,const jvalue *args);
 
-jboolean callBooleanMethod(const runtime rt,const jobject obj,const char *method,const char *signature,const jvalue *args);
+jboolean callBooleanMethod(const jobject obj,const char *method,const char *signature,const jvalue *args);
 
-jstring newString(const runtime rt,const jchar *unicode, jsize len);
+jstring newString(const jchar *unicode, jsize len);
 
 #endif

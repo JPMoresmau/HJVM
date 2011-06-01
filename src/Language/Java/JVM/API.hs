@@ -4,7 +4,6 @@ module Language.Java.JVM.API where
 import Language.Java.JVM.Types
 
 import Control.Monad
-import Control.Monad.State
 import qualified Data.Map as Map
 
 import Foreign.C
@@ -13,27 +12,30 @@ import Foreign.Marshal.Array
 import Control.Concurrent.MVar
 
 
-foreign import ccall safe "start" f_start ::CString -> IO (JRuntimePtr)
-foreign import ccall safe "end" f_end :: JRuntimePtr -> IO ()
+foreign import ccall safe "start" f_start ::CString -> IO (CLong)
+foreign import ccall safe "end" f_end :: IO ()
 --foreign import ccall "test" test ::CInt -> IO (CInt)
 
-foreign import ccall safe "findClass" f_findClass :: JRuntimePtr -> CString -> IO (JClassPtr)
-foreign import ccall safe "newObject" f_newObject :: JRuntimePtr -> JClassPtr -> CString -> JValuePtr -> IO (JObjectPtr)
-foreign import ccall safe "callIntMethod" f_callIntMethod :: JRuntimePtr -> JObjectPtr -> CString -> CString -> JValuePtr -> IO (CLong)
-foreign import ccall safe "callVoidMethod" f_callVoidMethod :: JRuntimePtr -> JObjectPtr -> CString -> CString -> JValuePtr -> IO ()
-foreign import ccall safe "callBooleanMethod" f_callBooleanMethod :: JRuntimePtr ->  JObjectPtr -> CString -> CString -> JValuePtr -> IO (CUChar)
-foreign import ccall safe "newString" f_newString :: JRuntimePtr ->  CWString -> CLong -> IO (JObjectPtr)
+foreign import ccall safe "findClass" f_findClass :: CString -> IO (JClassPtr)
+foreign import ccall safe "newObject" f_newObject :: JClassPtr -> CString -> JValuePtr -> IO (JObjectPtr)
+foreign import ccall safe "callIntMethod" f_callIntMethod :: JObjectPtr -> CString -> CString -> JValuePtr -> IO (CLong)
+foreign import ccall safe "callVoidMethod" f_callVoidMethod :: JObjectPtr -> CString -> CString -> JValuePtr -> IO ()
+foreign import ccall safe "callBooleanMethod" f_callBooleanMethod ::  JObjectPtr -> CString -> CString -> JValuePtr -> IO (CUChar)
+foreign import ccall safe "newString" f_newString :: CWString -> CLong -> IO (JObjectPtr)
 
-foreign import ccall safe "registerCallback" f_registerCallback :: JRuntimePtr -> CString -> CString -> CString -> FunPtr CallbackInternal -> IO()
+foreign import ccall safe "registerCallback" f_registerCallback :: CString -> CString -> CString -> FunPtr CallbackInternal -> IO()
 
 foreign import ccall "wrapper" wrap :: CallbackInternal -> IO (FunPtr CallbackInternal)
 
-withJava :: String ->  JavaT a -> IO (a)
-withJava options  f= do
+withJava :: String -> IO a -> IO a
+withJava = withJava' True
+
+withJava' :: Bool -> String -> IO a -> IO a
+withJava' end options f= do
       ret<-withCString options (\s->f_start s)
-      when (ret == nullPtr) (ioError $ userError "could not start JVM")
-      (a,rt)<-runStateT f ret
-      f_end rt
+      when (ret < 0) (ioError $ userError "could not start JVM")
+      a<-f
+      when end f_end
       return a
 
 --withJavaRT :: (JRuntimePtr -> IO (a)) -> JavaT a 
@@ -42,16 +44,14 @@ withJava options  f= do
 --        r<-liftIO $ f rt
 --        return r
 
-registerCallBackMethod:: (WithJava m)=> String -> String -> String -> m (CallbackMapRef)
+registerCallBackMethod:: String -> String -> String -> IO (CallbackMapRef)
 registerCallBackMethod cls method eventCls =do
-        ior<-liftIO $ newMVar Map.empty
-        withJavaRT
-                (\rt->do
-                        eventW<-liftIO $ wrap (event rt ior)
-                        withCString cls
-                                (\clsn->withCString method
-                                        (\methodn->withCString eventCls
-                                                (\eventClsn->f_registerCallback rt clsn methodn eventClsn eventW))))
+        ior<-newMVar Map.empty
+        eventW<-wrap (event ior)
+        withCString cls
+                (\clsn->withCString method
+                        (\methodn->withCString eventCls
+                                (\eventClsn->f_registerCallback clsn methodn eventClsn eventW)))
         return ior
 
 addCallBack :: CallbackMapRef  -> Callback  -> IO(CLong)
@@ -60,41 +60,45 @@ addCallBack cmr cb=do
                 let index=fromIntegral $ Map.size m
                 return (Map.insert index cb m,index))
 
-findClass :: (WithJava m)=>String -> m JClassPtr 
-findClass name=withJavaRT (\rt->withCString name (\s->f_findClass rt s))
+findClass :: String -> IO JClassPtr 
+findClass name=withCString name (\s->f_findClass s)
 
-newObject :: (WithJava m)=>JClassPtr -> String -> [JValue] -> m (JObjectPtr) 
-newObject cls signature args=withJavaRT 
-        (\rt->withCString signature 
+newObject :: JClassPtr -> String -> [JValue] -> IO (JObjectPtr) 
+newObject cls signature args=withCString signature 
                 (\s->withArray args
-                        (\arr->f_newObject rt cls s arr)))
+                        (\arr->f_newObject cls s arr))
 
-event :: JRuntimePtr -> CallbackMapRef -> CallbackInternal
-event st mvar _ _ index eventObj=do
+event :: CallbackMapRef -> CallbackInternal
+event mvar _ index eventObj=do
         putStrLn "event"
         putStrLn ("listenerEvt:"++(show index))
         withMVar mvar (\m->do
                 let handler=Map.lookup index m
                 case handler of
                         Nothing-> return ()
-                        Just h->evalStateT (h eventObj) st
+                        Just h->h eventObj
                 )
         
           
-voidMethod :: (WithJava m )=>JObjectPtr -> String -> String -> [JValue] -> m ()  
+voidMethod :: JObjectPtr -> String -> String -> [JValue] -> IO ()  
 voidMethod obj method signature args=  
-        withJavaRT (\rt->
-                withCString method
-                        (\m->withCString signature
-                                (\s->withArray args (\arr->f_callVoidMethod rt obj m s arr))))         
+        withCString method
+                (\m->withCString signature
+                        (\s->withArray args (\arr->f_callVoidMethod obj m s arr)))      
 
-booleanMethod :: (WithJava m)=>JObjectPtr -> String -> String -> [JValue] -> m (Bool)   
+booleanMethod :: JObjectPtr -> String -> String -> [JValue] -> IO (Bool)   
 booleanMethod obj method signature args= do
-        ret<- withJavaRT (\rt->
-                withCString method
-                        (\m->withCString signature
-                                (\s->withArray args (\arr->f_callBooleanMethod rt obj m s arr))))    
+        ret<-withCString method
+                (\m->withCString signature
+                        (\s->withArray args (\arr->f_callBooleanMethod obj m s arr)))    
         return (ret/=0)
+
+intMethod :: JObjectPtr -> String -> String -> [JValue] -> IO (Int)   
+intMethod obj method signature args= do
+        ret<- withCString method
+                        (\m->withCString signature
+                                (\s->withArray args (\arr->f_callIntMethod obj m s arr)))    
+        return (fromIntegral ret)
         
-toJString :: (WithJava m)=>String -> m (JObjectPtr) 
-toJString s=  withJavaRT (\rt->withCWString s (\cs->f_newString rt cs (fromIntegral $ length s)))
+toJString :: String -> IO (JObjectPtr) 
+toJString s=  withCWString s (\cs->f_newString cs (fromIntegral $ length s))

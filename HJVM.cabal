@@ -1,7 +1,7 @@
-Name: HJVM
-Version: 0.1
-Build-Type: Simple
-cabal-version:  >= 1.2
+Name:           HJVM
+Version:        0.1
+Build-Type:     Simple
+cabal-version:  >= 1.8
 --extra-source-files:  src/libjvm.dll.a
 
 library
@@ -11,8 +11,14 @@ library
   includes:           src/Language/Java/JVM/hjvm.h
   c-sources:          src/Language/Java/JVM/hjvm.c
   extra-libraries:    jvm
-  extra-lib-dirs:    d:\dev\java\jdk1.6.0_07\jre\bin\client
---  d:\Documents\perso\workspace\HJVM\src 
+  extra-lib-dirs:     d:\Documents\perso\workspace\HJVM\src d:\dev\java\jdk1.6.0_07\jre\bin\client
+--  
   include-dirs:       d:\dev\java\jdk1.6.0_07\include d:\dev\java\jdk1.6.0_07\include\win32
   ghc-options:        -O2 -Wall
 
+Test-Suite hjvm-test
+    type:           exitcode-stdio-1.0
+    hs-source-dirs: test
+    main-is:        Main.hs
+    build-depends:  base, Cabal >= 1.9.2, HJVM, HUnit, mtl, transformers
+    other-modules:  Language.Java.JVM.APITest
