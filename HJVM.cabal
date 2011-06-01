@@ -6,7 +6,7 @@ cabal-version:  >= 1.8
 
 library
   hs-source-dirs:     src 
-  build-depends:      base, containers, mtl
+  build-depends:      base, containers, mtl, transformers
   exposed-modules:    Language.Java.JVM.API, Language.Java.JVM.Types
   includes:           src/Language/Java/JVM/hjvm.h
   c-sources:          src/Language/Java/JVM/hjvm.c

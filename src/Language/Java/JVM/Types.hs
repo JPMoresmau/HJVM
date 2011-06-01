@@ -16,10 +16,10 @@ type JClassPtr=Ptr JClass
 --data JRuntime
 --type JRuntimePtr=Ptr JRuntime
 
---data JEnv
---type JEnvPtr=Ptr JEnv
+data JEnv
+type JEnvPtr=Ptr JEnv
 
-type CallbackInternal=(JObjectPtr -> CLong -> JObjectPtr -> IO())
+type CallbackInternal=(JEnvPtr -> JObjectPtr -> CLong -> JObjectPtr -> IO())
 
 type Callback = (JObjectPtr -> IO ())
 
