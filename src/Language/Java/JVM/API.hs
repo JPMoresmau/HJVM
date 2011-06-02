@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, FlexibleContexts #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, FlexibleContexts, FlexibleInstances #-}
 module Language.Java.JVM.API where
 
 import Language.Java.JVM.Types
@@ -12,16 +12,26 @@ import Foreign.Marshal.Array
 import Control.Concurrent.MVar
 import Control.Monad.IO.Class
 
+import Text.Printf
+
 foreign import ccall safe "start" f_start ::CString -> IO (CLong)
 foreign import ccall safe "end" f_end :: IO ()
 --foreign import ccall "test" test ::CInt -> IO (CInt)
 
 foreign import ccall safe "findClass" f_findClass :: CString -> IO (JClassPtr)
+foreign import ccall safe "findMethod" f_findMethod :: JClassPtr -> CString -> CString -> IO (JMethodPtr)
 foreign import ccall safe "newObject" f_newObject :: JClassPtr -> CString -> JValuePtr -> IO (JObjectPtr)
-foreign import ccall safe "callIntMethod" f_callIntMethod :: JObjectPtr -> CString -> CString -> JValuePtr -> IO (CLong)
-foreign import ccall safe "callVoidMethod" f_callVoidMethod :: JObjectPtr -> CString -> CString -> JValuePtr -> IO ()
-foreign import ccall safe "callBooleanMethod" f_callBooleanMethod ::  JObjectPtr -> CString -> CString -> JValuePtr -> IO (CUChar)
 foreign import ccall safe "newString" f_newString :: CWString -> CLong -> IO (JObjectPtr)
+
+foreign import ccall safe "callIntMethod" f_callIntMethod :: JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CLong)
+foreign import ccall safe "callCharMethod" f_callCharMethod :: JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CUShort)
+foreign import ccall safe "callVoidMethod" f_callVoidMethod :: JObjectPtr -> JMethodPtr -> JValuePtr -> IO ()
+foreign import ccall safe "callBooleanMethod" f_callBooleanMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CUChar)
+foreign import ccall safe "callByteMethod" f_callByteMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CChar)
+foreign import ccall safe "callLongMethod" f_callLongMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CLong)
+foreign import ccall safe "callShortMethod" f_callShortMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CShort)
+foreign import ccall safe "callFloatMethod" f_callFloatMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CFloat)
+foreign import ccall safe "callDoubleMethod" f_callDoubleMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CDouble)
 
 foreign import ccall safe "registerCallback" f_registerCallback :: CString -> CString -> CString -> FunPtr CallbackInternal -> IO()
 
@@ -79,26 +89,69 @@ event mvar _ _ index eventObj=do
                         Just h->h eventObj
                 )
         
+instance MethodProvider (JClassPtr,String,String) where
+        getMethodID (cls,method,signature)=do
+            withCString method
+                (\m->withCString signature
+                        (\s->f_findMethod cls m s))
           
-voidMethod :: (MonadIO m) =>JObjectPtr -> String -> String -> [JValue] -> m ()  
-voidMethod obj method signature args=  
-        liftIO $ withCString method
-                (\m->withCString signature
-                        (\s->withArray args (\arr->f_callVoidMethod obj m s arr)))      
+instance MethodProvider (String,String,String) where
+        getMethodID (clsName,method,signature)=do
+            findClass clsName>>=(\cls->do
+                    when (cls==nullPtr) (ioError $ userError $ printf "class %s not found" clsName)
+                    withCString method
+                        (\m->withCString signature
+                                (\s->f_findMethod cls m s)))
+          
+withMethod ::  (MethodProvider mp)  => mp -> (JMethodPtr -> IO(a)) -> IO (a)
+withMethod mp f=do
+        mid<-getMethodID mp
+        when (mid==nullPtr) (ioError $ userError "method not found")
+        f mid
+          
+voidMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m ()  
+voidMethod obj mp args= 
+        liftIO $ withMethod mp (\mid->withArray args (\arr->f_callVoidMethod obj mid arr)) 
 
-booleanMethod :: (MonadIO m) =>JObjectPtr -> String -> String -> [JValue] -> m (Bool)   
-booleanMethod obj method signature args= do
-        ret<-liftIO $ withCString method
-                (\m->withCString signature
-                        (\s->withArray args (\arr->f_callBooleanMethod obj m s arr)))    
+booleanMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Bool)   
+booleanMethod obj mp args= do
+        ret<-liftIO $ withMethod mp (\mid->withArray args (\arr->f_callBooleanMethod obj mid arr))    
         return (ret/=0)
 
-intMethod :: (MonadIO m) =>JObjectPtr -> String -> String -> [JValue] -> m (Int)   
-intMethod obj method signature args= do
-        ret<- liftIO $ withCString method
-                        (\m->withCString signature
-                                (\s->withArray args (\arr->f_callIntMethod obj m s arr)))    
+intMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Integer)   
+intMethod obj mp args= do
+        ret<- liftIO $ withMethod mp (\mid->withArray args (\arr->f_callIntMethod obj mid arr))    
         return (fromIntegral ret)
+
+charMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Char)   
+charMethod obj mp args= do
+        ret<- liftIO $ withMethod mp (\mid->withArray args (\arr->f_callCharMethod obj mid arr))   
+        return (toEnum $ fromIntegral ret)
+
+shortMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Int)   
+shortMethod obj mp args= do
+        ret<- liftIO $ withMethod mp (\mid->withArray args (\arr->f_callShortMethod obj mid arr))    
+        return (fromIntegral ret)
+
+byteMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Int)   
+byteMethod obj mp args= do
+        ret<- liftIO $ withMethod mp (\mid->withArray args (\arr->f_callByteMethod obj mid arr))   
+        return (fromIntegral ret)
+  
+longMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Integer)   
+longMethod obj mp args= do
+        ret<- liftIO $ withMethod mp (\mid->withArray args (\arr->f_callLongMethod obj mid arr))  
+        return (fromIntegral ret)  
+        
+floatMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Float)   
+floatMethod obj mp args= do
+        ret<- liftIO $ withMethod mp (\mid->withArray args (\arr->f_callFloatMethod obj mid arr))    
+        return $ realToFrac ret          
+
+doubleMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Double)   
+doubleMethod obj mp args= do
+        ret<- liftIO $ withMethod mp (\mid->withArray args (\arr->f_callDoubleMethod obj mid arr))    
+        return $ realToFrac ret   
         
 toJString :: (MonadIO m) => String -> m (JObjectPtr) 
 toJString s=  liftIO $ withCWString s (\cs->f_newString cs (fromIntegral $ length s))

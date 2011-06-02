@@ -5,7 +5,6 @@ module Language.Java.JVM.Types where
 import Foreign.C
 import Foreign.Ptr
 import Foreign.Storable
-import Control.Monad.State
 import qualified Data.Map as Map
 import Control.Concurrent.MVar
 
@@ -13,6 +12,8 @@ data JObject
 type JObjectPtr=Ptr JObject
 data JClass
 type JClassPtr=Ptr JClass
+data JMethod
+type JMethodPtr=Ptr JMethod
 --data JRuntime
 --type JRuntimePtr=Ptr JRuntime
 
@@ -52,6 +53,11 @@ instance Storable JValue where
         poke p (JDouble d)= poke (castPtr p) d
         peek=error "undefined peek"
 
+class MethodProvider a where
+        getMethodID :: a -> IO (JMethodPtr)
+
+instance MethodProvider JMethodPtr where
+        getMethodID=return
 
 --type JavaT =StateT JRuntimePtr IO
 --     

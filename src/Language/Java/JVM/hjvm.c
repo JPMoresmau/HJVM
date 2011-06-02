@@ -104,6 +104,12 @@ jclass findClass(const char *name){
 	return (*env)->FindClass(env, name);
 }
 
+jmethodID findMethod(const jclass cls,const char *method,const char *signature){
+	JNIEnv *env=getEnv(getJVM());
+	return (*env)->GetMethodID(env, cls, method,
+			 signature);
+}
+
 jobject newObject(const jclass cls, const char *signature,const jvalue *args){
 	JNIEnv *env=getEnv(getJVM());
 	jmethodID mid;
@@ -134,36 +140,52 @@ jmethodID getMethodID(JNIEnv *env,const jobject obj,const char *method,const cha
 	return mid;
 }
 
-jint callIntMethod(const jobject obj,const char *method,const char *signature,const jvalue *args){
+jint callIntMethod(const jobject obj,const jmethodID method,const jvalue *args){
 	JNIEnv *env=getEnv(getJVM());
-	jmethodID mid;
-	jint ret;
-	mid=getMethodID(env,obj,method,signature);
-	if (mid!=NULL){
-		ret= (*env)-> CallIntMethodA (env,obj,mid,args);
-	}
-	return ret;
+	return(*env)-> CallIntMethodA (env,obj,method,args);
 }
 
-jboolean callBooleanMethod(const jobject obj,const char *method,const char *signature,const jvalue *args){
+jchar callCharMethod(const jobject obj,const jmethodID method,const jvalue *args){
+	JNIEnv *env=getEnv(getJVM());
+	return (*env)-> CallCharMethodA (env,obj,method,args);
+}
+
+jshort callShortMethod(const jobject obj,const jmethodID method,const jvalue *args){
 	JNIEnv *env=getEnv(getJVM());
 	jmethodID mid;
-	jboolean ret;
-	mid=getMethodID(env,obj,method,signature);
-	if (mid!=NULL){
-		ret= (*env)-> CallBooleanMethodA (env,obj,mid,args);
-	}
-	return ret;
+	return (*env)-> CallShortMethodA (env,obj,method,args);
+}
+
+jbyte callByteMethod(const jobject obj,const jmethodID method,const jvalue *args){
+	JNIEnv *env=getEnv(getJVM());
+	jmethodID mid;
+	return (*env)-> CallByteMethodA (env,obj,method,args);
+}
+
+jlong callLongMethod(const jobject obj,const jmethodID method,const jvalue *args){
+	JNIEnv *env=getEnv(getJVM());
+	return (*env)-> CallLongMethodA (env,obj,method,args);
+}
+
+jfloat callFloatMethod(const jobject obj,const jmethodID method,const jvalue *args){
+	JNIEnv *env=getEnv(getJVM());
+	return (*env)-> CallFloatMethodA (env,obj,method,args);
+}
+
+jdouble callDoubleMethod(const jobject obj,const jmethodID method,const jvalue *args){
+	JNIEnv *env=getEnv(getJVM());
+	return (*env)-> CallDoubleMethodA (env,obj,method,args);
+}
+
+jboolean callBooleanMethod(const jobject obj,const jmethodID method,const jvalue *args){
+	JNIEnv *env=getEnv(getJVM());
+	return (*env)-> CallBooleanMethodA (env,obj,method,args);
 }
 
 
-void callVoidMethod(const jobject obj,const char *method,const char *signature,const jvalue *args){
+void callVoidMethod(const jobject obj,const jmethodID method,const jvalue *args){
 	JNIEnv *env=getEnv(getJVM());
-	jmethodID mid;
-	mid=getMethodID(env,obj,method,signature);
-	if (mid!=NULL){
-		(*env)-> CallVoidMethodA (env,obj,mid,args);
-	}
+	(*env)-> CallVoidMethodA (env,obj,method,args);
 }
 
 jstring newString(const jchar *unicode, jsize len){
