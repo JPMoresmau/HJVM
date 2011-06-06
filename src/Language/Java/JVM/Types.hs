@@ -1,12 +1,14 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, TypeSynonymInstances #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, TypeSynonymInstances, RankNTypes, ImpredicativeTypes #-}
 
 module Language.Java.JVM.Types where
 
+import qualified Data.Map as Map
 import Foreign.C
 import Foreign.Ptr
 import Foreign.Storable
-import qualified Data.Map as Map
+import Data.Map (Map)
 import Control.Concurrent.MVar
+import Control.Monad.State
 
 data JObject
 type JObjectPtr=Ptr JObject
@@ -22,7 +24,7 @@ type JEnvPtr=Ptr JEnv
 
 type CallbackInternal=(JEnvPtr -> JObjectPtr -> CLong -> JObjectPtr -> IO())
 
-type Callback = (JObjectPtr -> IO ())
+type Callback = (JObjectPtr -> JavaT ())
 
 type CallbackMap = Map.Map CLong Callback
 type CallbackMapRef =MVar CallbackMap
@@ -53,19 +55,37 @@ instance Storable JValue where
         poke p (JDouble d)= poke (castPtr p) d
         peek=error "undefined peek"
 
-class MethodProvider a where
-        getMethodID :: a -> IO (JMethodPtr)
+--class MethodProvider a where
+--        getMethodID :: a -> IO (JMethodPtr)
 
-instance MethodProvider JMethodPtr where
-        getMethodID=return
+--instance MethodProvider JMethodPtr where
+--        getMethodID=return
 
---type JavaT =StateT JRuntimePtr IO
---     
---class (Monad m, MonadIO m) => WithJava m where
---        withJavaRT  :: (JRuntimePtr -> IO (a)) -> m a 
---        
---instance WithJava JavaT where
---        withJavaRT f = do
---                rt<-get
---                r<-liftIO $ f rt
---                return r
+type ClassName = String
+
+data Method = Method {
+        m_class::ClassName
+        ,m_name:: String
+        ,m_signature:: String
+        }
+        deriving (Read,Show,Eq,Ord)
+        
+type ClassCache=Map ClassName JClassPtr
+type MethodCache=Map Method JMethodPtr
+        
+data JavaCache=JavaCache {
+        jc_classes::ClassCache
+        ,jc_methods::MethodCache
+        }        
+        
+type JavaT =StateT JavaCache IO
+     
+class (Monad m, MonadIO m) => WithJava m where
+        getJavaCache  :: m JavaCache
+        putJavaCache  :: JavaCache -> m()
+        
+instance WithJava JavaT where
+        getJavaCache = do
+                rt<-get
+                return rt
+        putJavaCache=put

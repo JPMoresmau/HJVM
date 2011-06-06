@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, FlexibleContexts, FlexibleInstances #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, FlexibleContexts, FlexibleInstances, RankNTypes #-}
 module Language.Java.JVM.API where
 
 import Language.Java.JVM.Types
@@ -11,6 +11,7 @@ import Foreign.Ptr
 import Foreign.Marshal.Array
 import Control.Concurrent.MVar
 import Control.Monad.IO.Class
+import Control.Monad.State
 
 import Text.Printf
 
@@ -37,14 +38,14 @@ foreign import ccall safe "registerCallback" f_registerCallback :: CString -> CS
 
 foreign import ccall "wrapper" wrap :: CallbackInternal -> IO (FunPtr CallbackInternal)
 
-withJava :: String -> IO a -> IO a
+withJava :: String -> JavaT a -> IO a
 withJava = withJava' True
 
-withJava' :: Bool -> String -> IO a -> IO a
+withJava' :: Bool -> String -> JavaT a -> IO a
 withJava' end options f= do
       ret<-withCString options (\s->f_start s)
       when (ret < 0) (ioError $ userError "could not start JVM")
-      a<-f
+      a<-evalStateT f (JavaCache Map.empty Map.empty)
       when end f_end
       return a
 
@@ -54,103 +55,138 @@ withJava' end options f= do
 --        r<-liftIO $ f rt
 --        return r
 
-registerCallBackMethod:: (MonadIO m) => String -> String -> String -> m (CallbackMapRef)
+registerCallBackMethod:: (WithJava m) => String -> String -> String -> m (CallbackMapRef)
 registerCallBackMethod cls method eventCls =do
+        jc<-getJavaCache
         ior<-liftIO $ newMVar Map.empty
-        eventW<-liftIO $ wrap (event ior)
+        eventW<-liftIO $ wrap (event jc ior)
         liftIO $ withCString cls
                 (\clsn->withCString method
                         (\methodn->withCString eventCls
                                 (\eventClsn->f_registerCallback clsn methodn eventClsn eventW)))
         return ior
 
-addCallBack :: (MonadIO m) => CallbackMapRef  -> Callback  -> m(CLong)
+addCallBack :: (WithJava m) => CallbackMapRef  -> Callback  -> m(CLong)
 addCallBack cmr cb=do
         liftIO $ modifyMVar cmr (\m-> do
                 let index=fromIntegral $ Map.size m
                 return (Map.insert index cb m,index))
 
-findClass :: (MonadIO m) => String -> m JClassPtr 
-findClass name=liftIO $ withCString name (\s->f_findClass s)
+findClass :: (WithJava m) => ClassName -> m JClassPtr 
+findClass name=do
+        jc<-getJavaCache
+        let mptr=Map.lookup name (jc_classes jc)
+        case mptr of
+              Just ptr->return ptr
+              Nothing->do  
+                ptr<-liftIO $ withCString name (\s->f_findClass s)
+                putJavaCache (jc{jc_classes=Map.insert name ptr $ jc_classes jc})
+                return ptr
 
-newObject :: (MonadIO m) =>JClassPtr -> String -> [JValue] -> m (JObjectPtr) 
-newObject cls signature args=liftIO $ withCString signature 
+withClass :: (WithJava m) => ClassName -> (JClassPtr->m a) -> m a
+withClass className f= findClass (className)>>=(\cls->do
+                        when (cls==nullPtr) (liftIO $ ioError $ userError $ printf "class %s not found" className)
+                        f cls)
+
+findMethod :: (WithJava m) => Method -> m JMethodPtr
+findMethod meth=do
+        jc<-getJavaCache
+        let mptr=Map.lookup meth (jc_methods jc)
+        case mptr of
+              Just ptr->return ptr
+              Nothing -> do
+                withClass (m_class meth) (\cls->do
+                        ptr<- liftIO $ withCString (m_name meth)
+                                (\m->withCString (m_signature meth)
+                                        (\s->f_findMethod cls m s
+                                                ))
+                        putJavaCache (jc{jc_methods=Map.insert meth ptr $ jc_methods jc})
+                        return ptr)
+
+withMethod :: (WithJava m) =>  Method -> (JMethodPtr -> m a) -> m a
+withMethod mp f=do
+        mid<-findMethod mp
+        when (mid==nullPtr) (liftIO $ ioError $ userError $ printf "method %s not found" $ show mp)
+        f mid
+
+newObject :: (WithJava m) => ClassName -> String -> [JValue] -> m (JObjectPtr) 
+newObject className signature args= withClass (className) (\cls->do
+        liftIO $ withCString signature 
                 (\s->withArray args
-                        (\arr->f_newObject cls s arr))
+                        (\arr->f_newObject cls s arr)))
 
-event :: CallbackMapRef -> CallbackInternal
-event mvar _ _ index eventObj=do
+event :: JavaCache -> CallbackMapRef -> CallbackInternal
+event jc mvar _ _ index eventObj=do
         putStrLn "event"
         putStrLn ("listenerEvt:"++(show index))
-        withMVar mvar (\m->do
-                let handler=Map.lookup index m
-                case handler of
-                        Nothing-> return ()
-                        Just h->h eventObj
+        mh<-liftIO $ withMVar mvar (\m->do
+                return $ Map.lookup index m
                 )
+        case mh of
+                Nothing-> return ()
+                Just h->evalStateT (h eventObj) jc    
+    
         
-instance MethodProvider (JClassPtr,String,String) where
-        getMethodID (cls,method,signature)=do
-            withCString method
-                (\m->withCString signature
-                        (\s->f_findMethod cls m s))
-          
-instance MethodProvider (String,String,String) where
-        getMethodID (clsName,method,signature)=do
-            findClass clsName>>=(\cls->do
-                    when (cls==nullPtr) (ioError $ userError $ printf "class %s not found" clsName)
-                    withCString method
-                        (\m->withCString signature
-                                (\s->f_findMethod cls m s)))
-          
-withMethod ::  (MethodProvider mp)  => mp -> (JMethodPtr -> IO(a)) -> IO (a)
-withMethod mp f=do
-        mid<-getMethodID mp
-        when (mid==nullPtr) (ioError $ userError "method not found")
-        f mid
-          
-voidMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m ()  
-voidMethod obj mp args= 
-        liftIO $ withMethod mp (\mid->withArray args (\arr->f_callVoidMethod obj mid arr)) 
+--instance MethodProvider (JClassPtr,String,String) where
+--        getMethodID (cls,method,signature)=do
+--            withCString method
+--                (\m->withCString signature
+--                        (\s->f_findMethod cls m s))
+--          
+--instance MethodProvider (String,String,String) where
+--        getMethodID (clsName,method,signature)=do
+--            findClass clsName>>=(\cls->do
+--                    when (cls==nullPtr) (ioError $ userError $ printf "class %s not found" clsName)
+--                    withCString method
+--                        (\m->withCString signature
+--                                (\s->f_findMethod cls m s)))
+--          
 
-booleanMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Bool)   
-booleanMethod obj mp args= do
-        ret<-liftIO $ withMethod mp (\mid->withArray args (\arr->f_callBooleanMethod obj mid arr))    
+
+
+          
+voidMethod :: (WithJava m) => JObjectPtr -> Method -> [JValue] -> m ()  
+voidMethod obj m args= 
+        withMethod m (\mid->liftIO $ withArray args (\arr->f_callVoidMethod obj mid arr)) 
+
+booleanMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Bool)   
+booleanMethod obj m args= do
+        ret<-withMethod m (\mid->liftIO $ withArray args (\arr->f_callBooleanMethod obj mid arr))    
         return (ret/=0)
 
-intMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Integer)   
-intMethod obj mp args= do
-        ret<- liftIO $ withMethod mp (\mid->withArray args (\arr->f_callIntMethod obj mid arr))    
+intMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Integer)   
+intMethod obj m args= do
+        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->f_callIntMethod obj mid arr))    
         return (fromIntegral ret)
 
-charMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Char)   
-charMethod obj mp args= do
-        ret<- liftIO $ withMethod mp (\mid->withArray args (\arr->f_callCharMethod obj mid arr))   
+charMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Char)   
+charMethod obj m args= do
+        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->f_callCharMethod obj mid arr))   
         return (toEnum $ fromIntegral ret)
 
-shortMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Int)   
-shortMethod obj mp args= do
-        ret<- liftIO $ withMethod mp (\mid->withArray args (\arr->f_callShortMethod obj mid arr))    
+shortMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Int)   
+shortMethod obj m args= do
+        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->f_callShortMethod obj mid arr))    
         return (fromIntegral ret)
 
-byteMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Int)   
-byteMethod obj mp args= do
-        ret<- liftIO $ withMethod mp (\mid->withArray args (\arr->f_callByteMethod obj mid arr))   
+byteMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Int)   
+byteMethod obj m args= do
+        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->f_callByteMethod obj mid arr))   
         return (fromIntegral ret)
   
-longMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Integer)   
-longMethod obj mp args= do
-        ret<- liftIO $ withMethod mp (\mid->withArray args (\arr->f_callLongMethod obj mid arr))  
+longMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Integer)   
+longMethod obj m args= do
+        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->f_callLongMethod obj mid arr))  
         return (fromIntegral ret)  
         
-floatMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Float)   
-floatMethod obj mp args= do
-        ret<- liftIO $ withMethod mp (\mid->withArray args (\arr->f_callFloatMethod obj mid arr))    
+floatMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Float)   
+floatMethod obj m args= do
+        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->f_callFloatMethod obj mid arr))    
         return $ realToFrac ret          
 
-doubleMethod :: (MonadIO m,MethodProvider mp) =>JObjectPtr -> mp -> [JValue] -> m (Double)   
-doubleMethod obj mp args= do
-        ret<- liftIO $ withMethod mp (\mid->withArray args (\arr->f_callDoubleMethod obj mid arr))    
+doubleMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Double)   
+doubleMethod obj m args= do
+        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->f_callDoubleMethod obj mid arr))    
         return $ realToFrac ret   
         
 toJString :: (MonadIO m) => String -> m (JObjectPtr) 
