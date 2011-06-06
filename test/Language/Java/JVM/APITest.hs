@@ -8,9 +8,10 @@ import Language.Java.JVM.Types
 import Control.Monad.IO.Class
 import Foreign.Ptr
 
+import System.IO.Error
 import Test.HUnit
 
-apiTests=TestList[testStartEnd,testNewString,testIntMethod,testCharMethod,testByteMethod,testShortMethod,testLongMethod,testDoubleMethod,testFloatMethod,testBooleanMethod]
+apiTests=TestList[testStartEnd,testClassNotFound,testMethodNotFound,testNewString,testIntMethod,testCharMethod,testByteMethod,testShortMethod,testLongMethod,testDoubleMethod,testFloatMethod,testBooleanMethod]
 
 
 testStartEnd=TestLabel "testStartEnd" (TestCase (do
@@ -19,6 +20,31 @@ testStartEnd=TestLabel "testStartEnd" (TestCase (do
                 return ()
                 )
         ))
+  
+testClassNotFound  =TestLabel "testClassNotFound" (TestCase (do
+        ejo<-try $ withJava' False "" (newObject "java/lang/Integer2" "(I)V" [JInt 25])
+        case ejo of
+                Left ior ->return()
+                Right obj->assertFailure "should be able to create Integer2"
+        el<-try $ withJava' False "" (do
+                jo<-newObject "java/lang/Integer" "(I)V" [JInt 25]
+                byteMethod jo (Method "java/lang/Integer2" "byteValue" "()B") []
+                )
+        case el of
+              Left ior ->return()
+              Right b->assertFailure "should be able to call byteValue on Integer2"
+        ))
+        
+testMethodNotFound  =TestLabel "testMethodNotFound" (TestCase (do
+        el<-try $ withJava' False "" (do
+                jo<-newObject "java/lang/Integer" "(I)V" [JInt 25]
+                byteMethod jo (Method "java/lang/Integer" "byteValue2" "()B") []
+                )
+        case el of
+              Left ior ->return()
+              Right b->assertFailure "should be able to call byteValue2 on Integer"
+        ))
+               
         
 testNewString=TestLabel "testNewString" (TestCase (do
         withJava' False "" (do
