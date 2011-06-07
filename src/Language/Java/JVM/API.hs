@@ -8,6 +8,7 @@ import qualified Data.Map as Map
 
 import Foreign.C
 import Foreign.Ptr
+import Foreign.Marshal.Alloc
 import Foreign.Marshal.Array
 import Control.Concurrent.MVar
 import Control.Monad.IO.Class
@@ -21,18 +22,19 @@ foreign import ccall safe "end" f_end :: IO ()
 
 foreign import ccall safe "findClass" f_findClass :: CString -> IO (JClassPtr)
 foreign import ccall safe "findMethod" f_findMethod :: JClassPtr -> CString -> CString -> IO (JMethodPtr)
-foreign import ccall safe "newObject" f_newObject :: JClassPtr -> CString -> JValuePtr -> IO (JObjectPtr)
-foreign import ccall safe "newString" f_newString :: CWString -> CLong -> IO (JObjectPtr)
+foreign import ccall safe "newObject" f_newObject :: JClassPtr -> JMethodPtr -> JValuePtr -> CWString -> IO (JObjectPtr)
+foreign import ccall safe "newString" f_newString :: CWString -> CLong  -> CWString-> IO (JObjectPtr)
 
-foreign import ccall safe "callIntMethod" f_callIntMethod :: JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CLong)
-foreign import ccall safe "callCharMethod" f_callCharMethod :: JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CUShort)
-foreign import ccall safe "callVoidMethod" f_callVoidMethod :: JObjectPtr -> JMethodPtr -> JValuePtr -> IO ()
-foreign import ccall safe "callBooleanMethod" f_callBooleanMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CUChar)
-foreign import ccall safe "callByteMethod" f_callByteMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CChar)
-foreign import ccall safe "callLongMethod" f_callLongMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CLong)
-foreign import ccall safe "callShortMethod" f_callShortMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CShort)
-foreign import ccall safe "callFloatMethod" f_callFloatMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CFloat)
-foreign import ccall safe "callDoubleMethod" f_callDoubleMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr -> IO (CDouble)
+foreign import ccall safe "callIntMethod" f_callIntMethod :: JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CLong)
+foreign import ccall safe "callCharMethod" f_callCharMethod :: JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CUShort)
+foreign import ccall safe "callVoidMethod" f_callVoidMethod :: JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO ()
+foreign import ccall safe "callBooleanMethod" f_callBooleanMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CUChar)
+foreign import ccall safe "callByteMethod" f_callByteMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CChar)
+foreign import ccall safe "callLongMethod" f_callLongMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CLong)
+foreign import ccall safe "callShortMethod" f_callShortMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CShort)
+foreign import ccall safe "callFloatMethod" f_callFloatMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CFloat)
+foreign import ccall safe "callDoubleMethod" f_callDoubleMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CDouble)
+foreign import ccall safe "callObjectMethod" f_callObjectMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (JObjectPtr)
 
 foreign import ccall safe "registerCallback" f_registerCallback :: CString -> CString -> CString -> FunPtr CallbackInternal -> IO()
 
@@ -109,11 +111,19 @@ withMethod mp f=do
         when (mid==nullPtr) (liftIO $ ioError $ userError $ printf "method %s not found" $ show mp)
         f mid
 
+handleException :: (CWString -> IO a) -> IO a
+handleException f=allocaBytes 1000 (\errMsg ->do
+        ret<-f errMsg
+        s<-peekCWString errMsg
+        when (not $ null s) (ioError $ userError s)
+        return ret
+        )
+
 newObject :: (WithJava m) => ClassName -> String -> [JValue] -> m (JObjectPtr) 
 newObject className signature args= withClass (className) (\cls->do
-        liftIO $ withCString signature 
-                (\s->withArray args
-                        (\arr->f_newObject cls s arr)))
+        withMethod (Method className "<init>" signature) (\mid->
+                liftIO $ withArray args
+                        (\arr-> handleException $ f_newObject cls mid arr)))
 
 event :: JavaCache -> CallbackMapRef -> CallbackInternal
 event jc mvar _ _ index eventObj=do
@@ -147,47 +157,52 @@ event jc mvar _ _ index eventObj=do
           
 voidMethod :: (WithJava m) => JObjectPtr -> Method -> [JValue] -> m ()  
 voidMethod obj m args= 
-        withMethod m (\mid->liftIO $ withArray args (\arr->f_callVoidMethod obj mid arr)) 
+        withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callVoidMethod obj mid arr)) 
 
 booleanMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Bool)   
 booleanMethod obj m args= do
-        ret<-withMethod m (\mid->liftIO $ withArray args (\arr->f_callBooleanMethod obj mid arr))    
+        ret<-withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callBooleanMethod obj mid arr))    
         return (ret/=0)
 
 intMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Integer)   
 intMethod obj m args= do
-        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->f_callIntMethod obj mid arr))    
+        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callIntMethod obj mid arr))    
         return (fromIntegral ret)
 
 charMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Char)   
 charMethod obj m args= do
-        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->f_callCharMethod obj mid arr))   
+        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callCharMethod obj mid arr))   
         return (toEnum $ fromIntegral ret)
 
 shortMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Int)   
 shortMethod obj m args= do
-        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->f_callShortMethod obj mid arr))    
+        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callShortMethod obj mid arr))    
         return (fromIntegral ret)
 
 byteMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Int)   
 byteMethod obj m args= do
-        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->f_callByteMethod obj mid arr))   
+        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callByteMethod obj mid arr))   
         return (fromIntegral ret)
   
 longMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Integer)   
 longMethod obj m args= do
-        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->f_callLongMethod obj mid arr))  
+        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callLongMethod obj mid arr))  
         return (fromIntegral ret)  
         
 floatMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Float)   
 floatMethod obj m args= do
-        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->f_callFloatMethod obj mid arr))    
+        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callFloatMethod obj mid arr))    
         return $ realToFrac ret          
 
 doubleMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Double)   
 doubleMethod obj m args= do
-        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->f_callDoubleMethod obj mid arr))    
+        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callDoubleMethod obj mid arr))    
         return $ realToFrac ret   
         
+objectMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (JObjectPtr)   
+objectMethod obj m args= 
+        withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callObjectMethod obj mid arr))    
+        
+        
 toJString :: (MonadIO m) => String -> m (JObjectPtr) 
-toJString s=  liftIO $ withCWString s (\cs->f_newString cs (fromIntegral $ length s))
+toJString s=  liftIO $ withCWString s (\cs->handleException $ f_newString cs (fromIntegral $ length s))

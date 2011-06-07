@@ -11,15 +11,24 @@ import Foreign.Ptr
 import System.IO.Error
 import Test.HUnit
 
-apiTests=TestList[testStartEnd,testClassNotFound,testMethodNotFound,testNewString,testIntMethod,testCharMethod,testByteMethod,testShortMethod,testLongMethod,testDoubleMethod,testFloatMethod,testBooleanMethod]
+apiTests=TestList[testStart,testClassNotFound,testMethodNotFound,testNewString,testIntMethod,testCharMethod,testByteMethod
+        ,testShortMethod,testLongMethod,testDoubleMethod,testFloatMethod,testBooleanMethod,testObjectMethod,testException
+        ,testEnd]
 
 
-testStartEnd=TestLabel "testStartEnd" (TestCase (do
+testStart=TestLabel "testStartEnd" (TestCase (do
         withJava' False "" (do
                 liftIO $ assertBool "true" True
                 return ()
                 )
         ))
+  
+testEnd=TestLabel "testEnd" (TestCase (do
+        withJava' True "" (do
+                liftIO $ assertBool "true" True
+                return ()
+                )
+        ))  
   
 testClassNotFound  =TestLabel "testClassNotFound" (TestCase (do
         ejo<-try $ withJava' False "" (newObject "java/lang/Integer2" "(I)V" [JInt 25])
@@ -42,9 +51,8 @@ testMethodNotFound  =TestLabel "testMethodNotFound" (TestCase (do
                 )
         case el of
               Left ior ->return()
-              Right b->assertFailure "should be able to call byteValue2 on Integer"
+              Right b->assertFailure "should not be able to call byteValue2 on Integer"
         ))
-               
         
 testNewString=TestLabel "testNewString" (TestCase (do
         withJava' False "" (do
@@ -110,12 +118,27 @@ testFloatMethod=TestLabel "testFloatMethod" (TestCase (do
         ))       
         
 testBooleanMethod=TestLabel "testBooleanMethod" (TestCase (do
-        withJava' True "" (do
+        withJava' False "" (do
                 jo<-toJString "hello"
                 l<-booleanMethod jo (Method "java/lang/String" "equals" "(Ljava/lang/Object;)Z") [JObj jo]
                 liftIO $ assertBool "equals" l
                 return ())
         ))
         
-
+testObjectMethod=TestLabel "testObjectMethod" (TestCase (do
+        withJava' False "" (do
+                jo<-newObject "java/lang/Integer" "(I)V" [JInt 25]
+                s<-objectMethod jo (Method "java/lang/Object" "toString" "()Ljava/lang/String;") []
+                liftIO $ assertBool "toString" (nullPtr/=s)
+                return ())
+        ))     
         
+testException=TestLabel "testException" (TestCase (do
+        el<-try $ withJava' False "" (do
+                s<-toJString "aa"
+                newObject "java/lang/Integer" "(Ljava/lang/String;)V" [JObj s]
+                )
+        case el of
+              Left ior ->return()
+              Right b->assertFailure "should be not able to call new Integer with aa"
+        ))   
