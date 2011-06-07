@@ -101,7 +101,20 @@ void end(){
 
 jclass findClass(const char *name){
 	JNIEnv *env=getEnv(getJVM());
-	return (*env)->FindClass(env, name);
+	jclass local=(*env)->FindClass(env, name);
+	jclass global=(*env)->NewGlobalRef(env, local);
+	(*env)->DeleteLocalRef(env, local);
+	return global;
+}
+
+void freeClass(jclass global){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)->DeleteGlobalRef(env, global);
+}
+
+void freeObject(jobject global){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)->DeleteGlobalRef(env, global);
 }
 
 jmethodID findMethod(const jclass cls,const char *method,const char *signature){
@@ -138,13 +151,14 @@ void handleException(JNIEnv *env,jchar *error){
 
 jobject newObject(const jclass cls, const jmethodID method,const jvalue *args,jchar *error){
 	JNIEnv *env=getEnv(getJVM());
-	jobject jo;
     if (cls == NULL || method== NULL) {
          return NULL;
     }
-    jo=(*env)->NewObjectA(env,cls,method,args);
+    jobject local=(*env)->NewObjectA(env,cls,method,args);
     handleException(env,error);
-    return jo;
+	jobject global=(*env)->NewGlobalRef(env, local);
+	(*env)->DeleteLocalRef(env, local);
+	return global;
 }
 
 
@@ -229,16 +243,20 @@ void callVoidMethod(const jobject obj,const jmethodID method,const jvalue *args,
 
 jobject callObjectMethod(const jobject obj,const jmethodID method,const jvalue *args,jchar *error){
 	JNIEnv *env=getEnv(getJVM());
-	jobject ret=(*env)-> CallObjectMethodA (env,obj,method,args);
+	jobject local=(*env)-> CallObjectMethodA (env,obj,method,args);
 	handleException(env,error);
-	return ret;
+	jobject global=(*env)->NewGlobalRef(env, local);
+	(*env)->DeleteLocalRef(env, local);
+	return global;
 }
 
 jstring newString(const jchar *unicode, jsize len,jchar *error){
 	JNIEnv *env=getEnv(getJVM());
-	jstring ret=(*env)->NewString(env,unicode,len);
+	jstring local=(*env)->NewString(env,unicode,len);
 	handleException(env,error);
-	return ret;
+	jstring global=(*env)->NewGlobalRef(env, local);
+	(*env)->DeleteLocalRef(env, local);
+	return global;
 }
 
 /*

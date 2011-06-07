@@ -36,8 +36,8 @@ testClassNotFound  =TestLabel "testClassNotFound" (TestCase (do
                 Left ior ->return()
                 Right obj->assertFailure "should be able to create Integer2"
         el<-try $ withJava' False "" (do
-                jo<-newObject "java/lang/Integer" "(I)V" [JInt 25]
-                byteMethod jo (Method "java/lang/Integer2" "byteValue" "()B") []
+                withObject (newObject "java/lang/Integer" "(I)V" [JInt 25]) (\jo->
+                        byteMethod jo (Method "java/lang/Integer2" "byteValue" "()B") [])
                 )
         case el of
               Left ior ->return()
@@ -56,8 +56,8 @@ testMethodNotFound  =TestLabel "testMethodNotFound" (TestCase (do
         
 testNewString=TestLabel "testNewString" (TestCase (do
         withJava' False "" (do
-                jo<-toJString "hello"
-                liftIO $ assertBool "jo"  (nullPtr/=jo)
+                withObject (toJString "hello") (\jo->
+                        liftIO $ assertBool "jo"  (nullPtr/=jo))
                 return ())
         ))
         
@@ -65,6 +65,7 @@ testIntMethod=TestLabel "testIntMethod" (TestCase (do
         withJava' False "" (do
                 jo<-toJString "hello"
                 l<-intMethod jo (Method "java/lang/String" "length" "()I") []
+                liftIO $ f_freeObject jo
                 liftIO $ assertEqual "jo" 5 l
                 return ())
         ))
@@ -129,6 +130,7 @@ testObjectMethod=TestLabel "testObjectMethod" (TestCase (do
         withJava' False "" (do
                 jo<-newObject "java/lang/Integer" "(I)V" [JInt 25]
                 s<-objectMethod jo (Method "java/lang/Object" "toString" "()Ljava/lang/String;") []
+                freeClass "java/lang/Integer"
                 liftIO $ assertBool "toString" (nullPtr/=s)
                 return ())
         ))     

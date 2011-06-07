@@ -18,6 +18,10 @@ void end();
 
 jclass findClass(const char *name);
 
+void freeClass(jclass global);
+
+void freeObject(jobject global);
+
 jmethodID findMethod(const jclass cls,const char *method,const char *signature);
 
 void registerCallback(const char *clsName,const char *methodName,const char *eventClsName,eventCallback f);

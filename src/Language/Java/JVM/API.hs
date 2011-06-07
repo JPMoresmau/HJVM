@@ -21,6 +21,8 @@ foreign import ccall safe "end" f_end :: IO ()
 --foreign import ccall "test" test ::CInt -> IO (CInt)
 
 foreign import ccall safe "findClass" f_findClass :: CString -> IO (JClassPtr)
+foreign import ccall safe "freeClass" f_freeClass :: JClassPtr -> IO ()
+foreign import ccall safe "freeObject" f_freeObject :: JObjectPtr -> IO ()
 foreign import ccall safe "findMethod" f_findMethod :: JClassPtr -> CString -> CString -> IO (JMethodPtr)
 foreign import ccall safe "newObject" f_newObject :: JClassPtr -> JMethodPtr -> JValuePtr -> CWString -> IO (JObjectPtr)
 foreign import ccall safe "newString" f_newString :: CWString -> CLong  -> CWString-> IO (JObjectPtr)
@@ -47,9 +49,16 @@ withJava' :: Bool -> String -> JavaT a -> IO a
 withJava' end options f= do
       ret<-withCString options (\s->f_start s)
       when (ret < 0) (ioError $ userError "could not start JVM")
-      a<-evalStateT f (JavaCache Map.empty Map.empty)
-      when end f_end
+      (a,s)<-runStateT f (JavaCache Map.empty Map.empty)
+      when end (evalStateT endJava s)
       return a
+
+endJava :: JavaT()
+endJava = do
+        jc<-getJavaCache
+        liftIO $ mapM_ (\ptr->f_freeClass ptr) (Map.elems $ jc_classes jc)
+        putJavaCache (JavaCache Map.empty Map.empty)
+        liftIO $ f_end 
 
 --withJavaRT :: (JRuntimePtr -> IO (a)) -> JavaT a 
 --withJavaRT f=do
@@ -85,10 +94,22 @@ findClass name=do
                 putJavaCache (jc{jc_classes=Map.insert name ptr $ jc_classes jc})
                 return ptr
 
+
 withClass :: (WithJava m) => ClassName -> (JClassPtr->m a) -> m a
 withClass className f= findClass (className)>>=(\cls->do
                         when (cls==nullPtr) (liftIO $ ioError $ userError $ printf "class %s not found" className)
                         f cls)
+
+
+freeClass :: (WithJava m) => ClassName -> m ()
+freeClass name=do
+        jc<-getJavaCache
+        let mptr=Map.lookup name (jc_classes jc)
+        case mptr of
+              Just ptr->do
+                liftIO $ f_freeClass ptr
+                putJavaCache (jc{jc_classes=Map.delete name $ jc_classes jc})
+              Nothing->return ()
 
 findMethod :: (WithJava m) => Method -> m JMethodPtr
 findMethod meth=do
@@ -118,6 +139,13 @@ handleException f=allocaBytes 1000 (\errMsg ->do
         when (not $ null s) (ioError $ userError s)
         return ret
         )
+
+withObject :: (WithJava m) => (m JObjectPtr) -> (JObjectPtr -> m a) -> m a
+withObject f1 f2=do
+        obj <- f1
+        ret <- f2 obj
+        liftIO $ f_freeObject obj
+        return (ret)
 
 newObject :: (WithJava m) => ClassName -> String -> [JValue] -> m (JObjectPtr) 
 newObject className signature args= withClass (className) (\cls->do
