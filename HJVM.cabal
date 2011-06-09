@@ -6,18 +6,19 @@ extra-source-files:  src/libjvm.dll.a,src/Language/Java/JVM/hjvm.h
 
 library
   hs-source-dirs:     src 
-  build-depends:      base, containers, mtl, transformers
-  exposed-modules:    Language.Java.JVM.API, Language.Java.JVM.Types
+  build-depends:      base, containers, mtl, transformers, process, filepath, parsec >= 3
+  exposed-modules:    Language.Java.JVM.API, Language.Java.JVM.Types, Language.Java.JVM.Generator, Language.Java.JVM.JavapParser
   includes:           src/Language/Java/JVM/hjvm.h
   c-sources:          src/Language/Java/JVM/hjvm.c
   extra-libraries:    jvm
   extra-lib-dirs:     d:\Documents\perso\workspace\HJVM\src d:\dev\java\jdk1.6.0_07\jre\bin\client
   include-dirs:       d:\dev\java\jdk1.6.0_07\include d:\dev\java\jdk1.6.0_07\include\win32
   ghc-options:        -O2 -Wall
-
+  
 Test-Suite hjvm-test
   type:           exitcode-stdio-1.0
   hs-source-dirs: test
   main-is:        Main.hs
   build-depends:  base, Cabal >= 1.9.2, HJVM, HUnit, mtl, transformers
-  other-modules:  Language.Java.JVM.APITest
+  other-modules:  Language.Java.JVM.APITest, Language.Java.JVM.JavapParserTest
+  ghc-options:    -Wall
