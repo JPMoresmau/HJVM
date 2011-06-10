@@ -13,12 +13,12 @@ library
   extra-libraries:    jvm
   extra-lib-dirs:     d:\Documents\perso\workspace\HJVM\src d:\dev\java\jdk1.6.0_07\jre\bin\client
   include-dirs:       d:\dev\java\jdk1.6.0_07\include d:\dev\java\jdk1.6.0_07\include\win32
-  ghc-options:        -O2 -Wall
+  ghc-options:        -O2 -Wall -fno-warn-unused-do-bind
   
 Test-Suite hjvm-test
   type:           exitcode-stdio-1.0
   hs-source-dirs: test
   main-is:        Main.hs
-  build-depends:  base, Cabal >= 1.9.2, HJVM, HUnit, mtl, transformers
+  build-depends:  base, Cabal >= 1.9.2, HJVM, HUnit, mtl, transformers, parsec >= 3
   other-modules:  Language.Java.JVM.APITest, Language.Java.JVM.JavapParserTest
-  ghc-options:    -Wall
+  ghc-options:    -Wall -fno-warn-unused-do-bind

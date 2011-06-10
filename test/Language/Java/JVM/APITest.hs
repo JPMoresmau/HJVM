@@ -11,18 +11,20 @@ import Foreign.Ptr
 import System.IO.Error
 import Test.HUnit
 
+apiTests::Test
 apiTests=TestList[testStart,testClassNotFound,testMethodNotFound,testNewString,testIntMethod,testCharMethod,testByteMethod
         ,testShortMethod,testLongMethod,testDoubleMethod,testFloatMethod,testBooleanMethod,testObjectMethod,testException
         ,testEnd]
 
-
+testStart :: Test
 testStart=TestLabel "testStartEnd" (TestCase (do
         withJava' False "" (do
                 liftIO $ assertBool "true" True
                 return ()
                 )
         ))
-  
+
+testEnd :: Test
 testEnd=TestLabel "testEnd" (TestCase (do
         withJava' True "" (do
                 liftIO $ assertBool "true" True
@@ -30,6 +32,7 @@ testEnd=TestLabel "testEnd" (TestCase (do
                 )
         ))  
   
+testClassNotFound :: Test
 testClassNotFound  =TestLabel "testClassNotFound" (TestCase (do
         ejo<-try $ withJava' False "" (newObject "java/lang/Integer2" "(I)V" [JInt 25])
         case ejo of
@@ -44,6 +47,7 @@ testClassNotFound  =TestLabel "testClassNotFound" (TestCase (do
               Right b->assertFailure "should be able to call byteValue on Integer2"
         ))
         
+testMethodNotFound :: Test
 testMethodNotFound  =TestLabel "testMethodNotFound" (TestCase (do
         el<-try $ withJava' False "" (do
                 jo<-newObject "java/lang/Integer" "(I)V" [JInt 25]
@@ -54,6 +58,8 @@ testMethodNotFound  =TestLabel "testMethodNotFound" (TestCase (do
               Right b->assertFailure "should not be able to call byteValue2 on Integer"
         ))
         
+        
+testNewString :: Test       
 testNewString=TestLabel "testNewString" (TestCase (do
         withJava' False "" (do
                 withObject (toJString "hello") (\jo->
@@ -61,6 +67,7 @@ testNewString=TestLabel "testNewString" (TestCase (do
                 return ())
         ))
         
+testIntMethod :: Test
 testIntMethod=TestLabel "testIntMethod" (TestCase (do
         withJava' False "" (do
                 jo<-toJString "hello"
@@ -70,6 +77,7 @@ testIntMethod=TestLabel "testIntMethod" (TestCase (do
                 return ())
         ))
 
+testCharMethod :: Test
 testCharMethod=TestLabel "testCharMethod" (TestCase (do
         withJava' False "" (do
                 jo<-toJString "hello"
@@ -78,6 +86,7 @@ testCharMethod=TestLabel "testCharMethod" (TestCase (do
                 return ())
         ))
         
+testByteMethod :: Test        
 testByteMethod=TestLabel "testByteMethod" (TestCase (do
         withJava' False "" (do
                 jo<-newObject "java/lang/Integer" "(I)V" [JInt 25]
@@ -85,7 +94,8 @@ testByteMethod=TestLabel "testByteMethod" (TestCase (do
                 liftIO $ assertEqual "25" 25 l
                 return ())
         ))       
-      
+ 
+testShortMethod :: Test      
 testShortMethod=TestLabel "testShortMethod" (TestCase (do
         withJava' False "" (do
                 jo<-newObject "java/lang/Integer" "(I)V" [JInt 25]
@@ -94,6 +104,7 @@ testShortMethod=TestLabel "testShortMethod" (TestCase (do
                 return ())
         ))       
      
+testLongMethod :: Test     
 testLongMethod=TestLabel "testLongMethod" (TestCase (do
         withJava' False "" (do
                 jo<-newObject "java/lang/Integer" "(I)V" [JInt 25]
@@ -102,6 +113,7 @@ testLongMethod=TestLabel "testLongMethod" (TestCase (do
                 return ())
         ))       
       
+testDoubleMethod :: Test      
 testDoubleMethod=TestLabel "testDoubleMethod" (TestCase (do
         withJava' False "" (do
                 jo<-newObject "java/lang/Double" "(D)V" [JDouble 25.67]
@@ -110,6 +122,7 @@ testDoubleMethod=TestLabel "testDoubleMethod" (TestCase (do
                 return ())
         ))          
 
+testFloatMethod :: Test
 testFloatMethod=TestLabel "testFloatMethod" (TestCase (do
         withJava' False "" (do
                 jo<-newObject "java/lang/Float" "(F)V" [JFloat 25.67]
@@ -117,7 +130,8 @@ testFloatMethod=TestLabel "testFloatMethod" (TestCase (do
                 liftIO $ assertEqual "25.67" 25.67 l
                 return ())
         ))       
-        
+ 
+testBooleanMethod :: Test        
 testBooleanMethod=TestLabel "testBooleanMethod" (TestCase (do
         withJava' False "" (do
                 jo<-toJString "hello"
@@ -125,7 +139,8 @@ testBooleanMethod=TestLabel "testBooleanMethod" (TestCase (do
                 liftIO $ assertBool "equals" l
                 return ())
         ))
-        
+ 
+testObjectMethod :: Test        
 testObjectMethod=TestLabel "testObjectMethod" (TestCase (do
         withJava' False "" (do
                 jo<-newObject "java/lang/Integer" "(I)V" [JInt 25]
@@ -134,7 +149,8 @@ testObjectMethod=TestLabel "testObjectMethod" (TestCase (do
                 liftIO $ assertBool "toString" (nullPtr/=s)
                 return ())
         ))     
-        
+   
+testException :: Test        
 testException=TestLabel "testException" (TestCase (do
         el<-try $ withJava' False "" (do
                 s<-toJString "aa"
