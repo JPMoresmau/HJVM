@@ -6,8 +6,8 @@ extra-source-files:  src/libjvm.dll.a,src/Language/Java/JVM/hjvm.h
 
 library
   hs-source-dirs:     src 
-  build-depends:      base, containers, mtl, transformers, process, filepath, parsec >= 3
-  exposed-modules:    Language.Java.JVM.API, Language.Java.JVM.Types, Language.Java.JVM.Generator, Language.Java.JVM.JavapParser
+  build-depends:      base, containers, mtl, transformers, process, filepath, parsec >= 3, haskell-src-exts
+  exposed-modules:    Language.Java.JVM.API, Language.Java.JVM.Types, Language.Java.JVM.Generator, Language.Java.JVM.JavapParser, Language.Java.JVM.SignatureParser
   includes:           src/Language/Java/JVM/hjvm.h
   c-sources:          src/Language/Java/JVM/hjvm.c
   extra-libraries:    jvm
@@ -19,6 +19,6 @@ Test-Suite hjvm-test
   type:           exitcode-stdio-1.0
   hs-source-dirs: test
   main-is:        Main.hs
-  build-depends:  base, Cabal >= 1.9.2, HJVM, HUnit, mtl, transformers, parsec >= 3
-  other-modules:  Language.Java.JVM.APITest, Language.Java.JVM.JavapParserTest
+  build-depends:  base, Cabal >= 1.9.2, HJVM, HUnit, mtl, transformers, parsec >= 3, haskell-src-exts
+  other-modules:  Language.Java.JVM.APITest, Language.Java.JVM.JavapParserTest, Language.Java.JVM.GeneratorTest, Language.Java.JVM.SignatureParserTest
   ghc-options:    -Wall -fno-warn-unused-do-bind

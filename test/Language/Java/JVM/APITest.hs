@@ -36,15 +36,15 @@ testClassNotFound :: Test
 testClassNotFound  =TestLabel "testClassNotFound" (TestCase (do
         ejo<-try $ withJava' False "" (newObject "java/lang/Integer2" "(I)V" [JInt 25])
         case ejo of
-                Left ior ->return()
-                Right obj->assertFailure "should be able to create Integer2"
+                Left _ ->return()
+                Right _->assertFailure "should be able to create Integer2"
         el<-try $ withJava' False "" (do
                 withObject (newObject "java/lang/Integer" "(I)V" [JInt 25]) (\jo->
                         byteMethod jo (Method "java/lang/Integer2" "byteValue" "()B") [])
                 )
         case el of
-              Left ior ->return()
-              Right b->assertFailure "should be able to call byteValue on Integer2"
+              Left _ ->return()
+              Right _->assertFailure "should be able to call byteValue on Integer2"
         ))
         
 testMethodNotFound :: Test
@@ -54,8 +54,8 @@ testMethodNotFound  =TestLabel "testMethodNotFound" (TestCase (do
                 byteMethod jo (Method "java/lang/Integer" "byteValue2" "()B") []
                 )
         case el of
-              Left ior ->return()
-              Right b->assertFailure "should not be able to call byteValue2 on Integer"
+              Left _ ->return()
+              Right _->assertFailure "should not be able to call byteValue2 on Integer"
         ))
         
         
@@ -157,6 +157,6 @@ testException=TestLabel "testException" (TestCase (do
                 newObject "java/lang/Integer" "(Ljava/lang/String;)V" [JObj s]
                 )
         case el of
-              Left ior ->return()
-              Right b->assertFailure "should be not able to call new Integer with aa"
+              Left _ ->return()
+              Right _->assertFailure "should be not able to call new Integer with aa"
         ))   

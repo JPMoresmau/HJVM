@@ -17,16 +17,16 @@ import Text.Parsec.Language (javaStyle)
 data TypeDecl=TypeDecl {
         td_name::ClassName
         ,td_supers::[ClassName]
-        ,td_decls::[Decl]
+        ,td_decls::[JDecl]
         }
         deriving (Show,Read,Eq,Ord)
 
-data Decl=MethodDecl {
+data JDecl=JMethodDecl {
         d_name::String
         ,d_signature::String
         ,d_static::Bool
         }
-        | FieldDecl {
+        | JFieldDecl {
         d_name::String
         ,d_signature::String
         ,d_static::Bool
@@ -54,7 +54,7 @@ typeDecl=do
                 return $ catMaybes decls)
         return $ TypeDecl name (concat $ catMaybes [extends,implements]) decls
 
-decl :: ParsecT String u Identity (Maybe Decl)
+decl :: ParsecT String u Identity (Maybe JDecl)
 decl = do
         sta<-static
         choice [(do
@@ -79,8 +79,8 @@ decl = do
                         semi        
                         sign<-signature
                         return $ if meth
-                                then Just $ MethodDecl name sign sta
-                                else Just $ FieldDecl name sign sta
+                                then Just $ JMethodDecl name sign sta
+                                else Just $ JFieldDecl name sign sta
                 )]
 
 --methodDecl :: ParsecT String u Identity (Bool -> Decl)
@@ -135,7 +135,7 @@ className ::ParsecT String u Identity ClassName
 className = do
       names<-sepBy1 identifier dot  
       optionMaybe $ brackets whiteSpace
-      return $ concat $ intersperse "/" names
+      return $ intercalate "/" names
 
 static :: ParsecT String u Identity Bool
 static = do
