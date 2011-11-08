@@ -265,6 +265,72 @@ jint callStaticIntMethod(const jclass cls,const jmethodID method,const jvalue *a
 	return ret;
 }
 
+jchar callStaticCharMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jchar ret=(*env)-> CallStaticCharMethodA (env,cls,method,args);
+	handleException(env,error);
+	return ret;
+}
+
+jshort callStaticShortMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jmethodID mid;
+	jshort ret=(*env)-> CallStaticShortMethodA (env,cls,method,args);
+	handleException(env,error);
+	return ret;
+}
+
+jbyte callStaticByteMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jmethodID mid;
+	jbyte ret=(*env)-> CallStaticByteMethodA (env,cls,method,args);
+	handleException(env,error);
+	return ret;
+}
+
+jlong callStaticLongMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jlong ret=(*env)-> CallStaticLongMethodA (env,cls,method,args);
+	handleException(env,error);
+	return ret;
+}
+
+jfloat callStaticFloatMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jfloat ret=(*env)-> CallStaticFloatMethodA (env,cls,method,args);
+	handleException(env,error);
+	return ret;
+}
+
+jdouble callStaticDoubleMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jdouble ret=(*env)-> CallStaticDoubleMethodA (env,cls,method,args);
+	handleException(env,error);
+	return ret;
+}
+
+jboolean callStaticBooleanMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jboolean ret=(*env)-> CallStaticBooleanMethodA (env,cls,method,args);
+	handleException(env,error);
+	return ret;
+}
+
+void callStaticVoidMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> CallStaticVoidMethodA (env,cls,method,args);
+	handleException(env,error);
+}
+
+jobject callStaticObjectMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jobject local=(*env)-> CallStaticObjectMethodA (env,cls,method,args);
+	handleException(env,error);
+	jobject global=(*env)->NewGlobalRef(env, local);
+	(*env)->DeleteLocalRef(env, local);
+	return global;
+}
+
 jstring newString(const jchar *unicode, jsize len,jchar *error){
 	JNIEnv *env=getEnv(getJVM());
 	jstring local=(*env)->NewString(env,unicode,len);

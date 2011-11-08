@@ -40,6 +40,16 @@ foreign import ccall safe "callDoubleMethod" f_callDoubleMethod ::  JObjectPtr -
 foreign import ccall safe "callObjectMethod" f_callObjectMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (JObjectPtr)
 
 foreign import ccall safe "callStaticIntMethod" f_callStaticIntMethod :: JClassPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CLong)
+foreign import ccall safe "callStaticCharMethod" f_callStaticCharMethod :: JClassPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CUShort)
+foreign import ccall safe "callStaticVoidMethod" f_callStaticVoidMethod :: JClassPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO ()
+foreign import ccall safe "callStaticBooleanMethod" f_callStaticBooleanMethod ::  JClassPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CUChar)
+foreign import ccall safe "callStaticByteMethod" f_callStaticByteMethod ::  JClassPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CChar)
+foreign import ccall safe "callStaticLongMethod" f_callStaticLongMethod ::  JClassPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CLong)
+foreign import ccall safe "callStaticShortMethod" f_callStaticShortMethod ::  JClassPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CShort)
+foreign import ccall safe "callStaticFloatMethod" f_callStaticFloatMethod ::  JClassPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CFloat)
+foreign import ccall safe "callStaticDoubleMethod" f_callStaticDoubleMethod ::  JClassPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CDouble)
+foreign import ccall safe "callStaticObjectMethod" f_callStaticObjectMethod ::  JClassPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (JObjectPtr)
+
 
 foreign import ccall safe "registerCallback" f_registerCallback :: CString -> CString -> CString -> FunPtr CallbackInternal -> IO()
 
@@ -260,6 +270,42 @@ staticIntMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Integer)
 staticIntMethod cls m args= do
         ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticIntMethod cls mid arr))    
         return (fromIntegral ret)        
+
+staticCharMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Char)   
+staticCharMethod cls m args= do
+        ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticCharMethod cls mid arr))   
+        return (toEnum $ fromIntegral ret)
+
+staticShortMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Int)   
+staticShortMethod cls m args= do
+        ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticShortMethod cls mid arr))    
+        return (fromIntegral ret)
+
+staticByteMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Int)   
+staticByteMethod cls m args= do
+        ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticByteMethod cls mid arr))   
+        return (fromIntegral ret)
+  
+staticLongMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Integer)   
+staticLongMethod cls m args= do
+        ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticLongMethod cls mid arr))  
+        return (fromIntegral ret)  
         
+staticFloatMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Float)   
+staticFloatMethod cls m args= do
+        ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticFloatMethod cls mid arr))    
+        return $ realToFrac ret          
+
+staticDoubleMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Double)   
+staticDoubleMethod cls m args= do
+        ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticDoubleMethod cls mid arr))    
+        return $ realToFrac ret   
+        
+staticObjectMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (JObjectPtr)   
+staticObjectMethod cls m args= 
+        withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticObjectMethod cls mid arr))    
+        
+        
+
 toJString :: (MonadIO m) => String -> m (JObjectPtr) 
 toJString s=  liftIO $ withCWString s (\cs->handleException $ f_newString cs (fromIntegral $ length s))

@@ -54,4 +54,22 @@ jobject callObjectMethod(const jobject obj,const jmethodID method,const jvalue *
 
 jint callStaticIntMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error);
 
+void callStaticVoidMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error);
+
+jboolean callStaticBooleanMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error);
+
+jchar callStaticCharMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error);
+
+jshort callStaticShortMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error);
+
+jbyte callStaticByteMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error);
+
+jlong callStaticLongMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error);
+
+jdouble callStaticDoubleMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error);
+
+jfloat callStaticFloatMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error);
+
+jobject callStaticObjectMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error);
+
 #endif

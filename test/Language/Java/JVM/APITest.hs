@@ -14,7 +14,7 @@ import Test.HUnit
 apiTests::[Test]
 apiTests=[testStart,testClassNotFound,testMethodNotFound,testNewString,testIntMethod,testCharMethod,testByteMethod
         ,testShortMethod,testLongMethod,testDoubleMethod,testFloatMethod,testBooleanMethod,testObjectMethod,testException
-        ,testStaticIntMethod
+        ,testStaticIntMethod,testStaticObjectMethod
         ,testEnd]
 
 testStart :: Test
@@ -150,6 +150,7 @@ testObjectMethod=TestLabel "testObjectMethod" (TestCase (do
                 liftIO $ f_freeObject jo
                 freeClass "java/lang/Integer"
                 liftIO $ assertBool "toString" (nullPtr/=s)
+                liftIO $ f_freeObject s
                 return ())
         ))     
    
@@ -165,6 +166,17 @@ testStaticIntMethod=TestLabel "testStaticIntMethod" (TestCase (do
                 liftIO $ assertEqual "parseInt" 5 l
                 return ())
         ))   
+   
+testStaticObjectMethod :: Test
+testStaticObjectMethod=TestLabel "testStaticObjectMethod" (TestCase (do
+        withJava' False "" (do
+                jc<-findClass "java/lang/Integer"
+                jo<-staticObjectMethod jc (Method "java/lang/Integer" "valueOf" "(I)Ljava/lang/Integer;") [JInt 5]
+                liftIO $ assertBool "testStaticObjectMethod" (nullPtr/=jo)
+                liftIO $ f_freeClass jc
+                liftIO $ f_freeObject jo
+                return ())
+        ))      
    
 testException :: Test        
 testException=TestLabel "testException" (TestCase (do
