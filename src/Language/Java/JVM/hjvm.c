@@ -125,6 +125,24 @@ jmethodID findMethod(const jclass cls,const char *method,const char *signature){
 	return mid;
 }
 
+jfieldID findField(const jclass cls,const char *name,const char *signature){
+	JNIEnv *env=getEnv(getJVM());
+	jfieldID fid;
+	fid=(*env)->GetFieldID(env, cls, name,
+			 signature);
+	(*env)->ExceptionClear(env);
+	return fid;
+}
+
+jfieldID findStaticField(const jclass cls,const char *name,const char *signature){
+	JNIEnv *env=getEnv(getJVM());
+	jfieldID fid;
+	fid=(*env)->GetStaticFieldID(env, cls, name,
+			 signature);
+	(*env)->ExceptionClear(env);
+	return fid;
+}
+
 jmethodID findStaticMethod(const jclass cls,const char *method,const char *signature){
 	JNIEnv *env=getEnv(getJVM());
 	jmethodID mid;
@@ -336,6 +354,71 @@ jstring newString(const jchar *unicode, jsize len,jchar *error){
 	jstring local=(*env)->NewString(env,unicode,len);
 	handleException(env,error);
 	jstring global=(*env)->NewGlobalRef(env, local);
+	(*env)->DeleteLocalRef(env, local);
+	return global;
+}
+
+jint getStaticIntField(const jclass cls,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jint ret=(*env)-> GetStaticIntField (env,cls,field);
+	handleException(env,error);
+	return ret;
+}
+
+jboolean getStaticBooleanField(const jclass cls,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jboolean ret=(*env)-> GetStaticBooleanField (env,cls,field);
+	handleException(env,error);
+	return ret;
+}
+
+jchar getStaticCharField(const jclass cls,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jchar ret=(*env)-> GetStaticCharField (env,cls,field);
+	handleException(env,error);
+	return ret;
+}
+
+jshort getStaticShortField(const jclass cls,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jshort ret=(*env)-> GetStaticShortField (env,cls,field);
+	handleException(env,error);
+	return ret;
+}
+
+jbyte getStaticByteField(const jclass cls,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jbyte ret=(*env)-> GetStaticByteField (env,cls,field);
+	handleException(env,error);
+	return ret;
+}
+
+jlong getStaticLongField(const jclass cls,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jlong ret=(*env)-> GetStaticLongField (env,cls,field);
+	handleException(env,error);
+	return ret;
+}
+
+jdouble getStaticDoubleField(const jclass cls,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jdouble ret=(*env)-> GetStaticDoubleField (env,cls,field);
+	handleException(env,error);
+	return ret;
+}
+
+jfloat getStaticFloatField(const jclass cls,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jfloat ret=(*env)-> GetStaticFloatField (env,cls,field);
+	handleException(env,error);
+	return ret;
+}
+
+jobject getStaticObjectField(const jclass cls,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jobject local=(*env)-> GetStaticObjectField (env,cls,field);
+	handleException(env,error);
+	jobject global=(*env)->NewGlobalRef(env, local);
 	(*env)->DeleteLocalRef(env, local);
 	return global;
 }

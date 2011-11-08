@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, TypeSynonymInstances, RankNTypes, ImpredicativeTypes #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, TypeSynonymInstances, RankNTypes, ImpredicativeTypes, MultiParamTypeClasses #-}
 
 module Language.Java.JVM.Types where
 
@@ -16,6 +16,8 @@ data JClass
 type JClassPtr=Ptr JClass
 data JMethod
 type JMethodPtr=Ptr JMethod
+data JField
+type JFieldPtr=Ptr JField
 --data JRuntime
 --type JRuntimePtr=Ptr JRuntime
 
@@ -72,13 +74,22 @@ data Method = Method {
         ,m_signature:: String
         }
         deriving (Read,Show,Eq,Ord)
+
+data Field = Field {
+        f_class::ClassName
+        ,f_name:: String
+        ,f_signature:: String
+        }
+        deriving (Read,Show,Eq,Ord)
         
 type ClassCache=Map ClassName JClassPtr
 type MethodCache=Map Method JMethodPtr
+type FieldCache=Map Field JFieldPtr
         
 data JavaCache=JavaCache {
         jc_classes::ClassCache
         ,jc_methods::MethodCache
+        ,jc_fields::FieldCache
         }        
         
 type JavaT =StateT JavaCache IO
@@ -92,3 +103,34 @@ instance WithJava JavaT where
                 rt<-get
                 return rt
         putJavaCache=put
+
+javaToHaskell :: (HaskellJavaConversion h j,WithJava m)=> m j -> m h
+javaToHaskell = liftM toHaskell
+        
+class HaskellJavaConversion h j where
+        toHaskell :: j -> h
+        
+instance HaskellJavaConversion Float CFloat where
+        toHaskell = realToFrac
+        
+instance HaskellJavaConversion Double CDouble where
+        toHaskell = realToFrac
+                
+instance HaskellJavaConversion Integer CLong where
+        toHaskell = fromIntegral
+        
+instance HaskellJavaConversion Int CChar where
+        toHaskell = fromIntegral          
+        
+instance HaskellJavaConversion Int CShort where
+        toHaskell = fromIntegral    
+
+instance HaskellJavaConversion Bool CUChar where
+        toHaskell = (0 /=)      
+
+instance HaskellJavaConversion Char CUShort where
+        toHaskell = toEnum . fromIntegral
+
+instance HaskellJavaConversion JObjectPtr JObjectPtr where
+        toHaskell = id        
+          

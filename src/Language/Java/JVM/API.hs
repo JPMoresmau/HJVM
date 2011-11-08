@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, FlexibleContexts, FlexibleInstances, RankNTypes #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, FlexibleContexts, FlexibleInstances, RankNTypes,MultiParamTypeClasses #-}
 module Language.Java.JVM.API where
 
 import Language.Java.JVM.Types
@@ -25,6 +25,8 @@ foreign import ccall safe "freeClass" f_freeClass :: JClassPtr -> IO ()
 foreign import ccall safe "freeObject" f_freeObject :: JObjectPtr -> IO ()
 foreign import ccall safe "findMethod" f_findMethod :: JClassPtr -> CString -> CString -> IO (JMethodPtr)
 foreign import ccall safe "findStaticMethod" f_findStaticMethod :: JClassPtr -> CString -> CString -> IO (JMethodPtr)
+foreign import ccall safe "findField" f_findField :: JClassPtr -> CString -> CString -> IO (JFieldPtr)
+foreign import ccall safe "findStaticField" f_findStaticField :: JClassPtr -> CString -> CString -> IO (JFieldPtr)
 foreign import ccall safe "newObject" f_newObject :: JClassPtr -> JMethodPtr -> JValuePtr -> CWString -> IO (JObjectPtr)
 foreign import ccall safe "newString" f_newString :: CWString -> CLong  -> CWString-> IO (JObjectPtr)
 
@@ -50,6 +52,16 @@ foreign import ccall safe "callStaticFloatMethod" f_callStaticFloatMethod ::  JC
 foreign import ccall safe "callStaticDoubleMethod" f_callStaticDoubleMethod ::  JClassPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CDouble)
 foreign import ccall safe "callStaticObjectMethod" f_callStaticObjectMethod ::  JClassPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (JObjectPtr)
 
+foreign import ccall safe "getStaticIntField" f_getStaticIntField :: JClassPtr -> JFieldPtr -> CWString-> IO (CLong)
+foreign import ccall safe "getStaticBooleanField" f_getStaticBooleanField :: JClassPtr -> JFieldPtr -> CWString-> IO (CUChar)
+foreign import ccall safe "getStaticCharField" f_getStaticCharField :: JClassPtr -> JFieldPtr -> CWString-> IO (CUShort)
+foreign import ccall safe "getStaticShortField" f_getStaticShortField :: JClassPtr -> JFieldPtr -> CWString-> IO (CShort)
+foreign import ccall safe "getStaticByteField" f_getStaticByteField :: JClassPtr -> JFieldPtr -> CWString-> IO (CChar)
+foreign import ccall safe "getStaticLongField" f_getStaticLongField :: JClassPtr -> JFieldPtr -> CWString-> IO (CLong)
+foreign import ccall safe "getStaticDoubleField" f_getStaticDoubleField :: JClassPtr -> JFieldPtr -> CWString-> IO (CDouble)
+foreign import ccall safe "getStaticFloatField" f_getStaticFloatField :: JClassPtr -> JFieldPtr -> CWString-> IO (CFloat)
+foreign import ccall safe "getStaticObjectField" f_getStaticObjectField :: JClassPtr -> JFieldPtr -> CWString-> IO (JObjectPtr)
+
 
 foreign import ccall safe "registerCallback" f_registerCallback :: CString -> CString -> CString -> FunPtr CallbackInternal -> IO()
 
@@ -62,7 +74,7 @@ withJava' :: Bool -> String -> JavaT a -> IO a
 withJava' end options f= do
       ret<-withCString options (\s->f_start s)
       when (ret < 0) (ioError $ userError "could not start JVM")
-      (a,s)<-runStateT f (JavaCache Map.empty Map.empty)
+      (a,s)<-runStateT f (JavaCache Map.empty Map.empty  Map.empty)
       when end (evalStateT endJava s)
       return a
 
@@ -70,7 +82,7 @@ endJava :: JavaT()
 endJava = do
         jc<-getJavaCache
         liftIO $ mapM_ (\ptr->f_freeClass ptr) (Map.elems $ jc_classes jc)
-        putJavaCache (JavaCache Map.empty Map.empty)
+        putJavaCache (JavaCache Map.empty Map.empty Map.empty)
         liftIO $ f_end 
 
 --withJavaRT :: (JRuntimePtr -> IO (a)) -> JavaT a 
@@ -163,8 +175,50 @@ withMethod mp f=do
 withStaticMethod :: (WithJava m) =>  Method -> (JMethodPtr -> m a) -> m a
 withStaticMethod mp f=do
         mid<-findStaticMethod mp
-        when (mid==nullPtr) (liftIO $ ioError $ userError $ printf "method %s not found" $ show mp)
+        when (mid==nullPtr) (liftIO $ ioError $ userError $ printf "static method %s not found" $ show mp)
         f mid
+
+findField :: (WithJava m) => Field -> m JFieldPtr
+findField field=do
+        jc<-getJavaCache
+        let mptr=Map.lookup field (jc_fields jc)
+        case mptr of
+              Just ptr->return ptr
+              Nothing -> do
+                withClass (f_class field) (\cls->do
+                        ptr<- liftIO $ withCString (f_name field)
+                                (\m->withCString (f_signature field)
+                                        (\s->f_findField cls m s
+                                                ))
+                        putJavaCache (jc{jc_fields=Map.insert field ptr $ jc_fields jc})
+                        return ptr)
+
+findStaticField :: (WithJava m) => Field -> m JFieldPtr
+findStaticField field=do
+        jc<-getJavaCache
+        let mptr=Map.lookup field (jc_fields jc)
+        case mptr of
+              Just ptr->return ptr
+              Nothing -> do
+                withClass (f_class field) (\cls->do
+                        ptr<- liftIO $ withCString (f_name field)
+                                (\m->withCString (f_signature field)
+                                        (\s->f_findStaticField cls m s
+                                                ))
+                        putJavaCache (jc{jc_fields=Map.insert field ptr $ jc_fields jc})
+                        return ptr)
+
+withField :: (WithJava m) =>  Field -> (JFieldPtr -> m a) -> m a
+withField mp f=do
+        fid<-findField mp
+        when (fid==nullPtr) (liftIO $ ioError $ userError $ printf "field %s not found" $ show mp)
+        f fid
+
+withStaticField :: (WithJava m) =>  Field -> (JFieldPtr -> m a) -> m a
+withStaticField mp f=do
+        fid<-findStaticField mp
+        when (fid==nullPtr) (liftIO $ ioError $ userError $ printf "static field %s not found" $ show mp)
+        f fid
 
 handleException :: (CWString -> IO a) -> IO a
 handleException f=allocaBytes 1000 (\errMsg ->do
@@ -221,91 +275,102 @@ voidMethod :: (WithJava m) => JObjectPtr -> Method -> [JValue] -> m ()
 voidMethod obj m args= 
         withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callVoidMethod obj mid arr)) 
 
+execMethod :: (HaskellJavaConversion h j,WithJava m) => 
+        (JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO j)
+        -> JObjectPtr -> Method -> [JValue] -> m h
+execMethod f obj m args = javaToHaskell $ withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f obj mid arr))    
+
 booleanMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Bool)   
-booleanMethod obj m args= do
-        ret<-withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callBooleanMethod obj mid arr))    
-        return (ret/=0)
+booleanMethod obj m args= execMethod f_callBooleanMethod obj m args
 
 intMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Integer)   
-intMethod obj m args= do
-        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callIntMethod obj mid arr))    
-        return (fromIntegral ret)
+intMethod obj m args= execMethod f_callIntMethod obj m args
 
 charMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Char)   
-charMethod obj m args= do
-        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callCharMethod obj mid arr))   
-        return (toEnum $ fromIntegral ret)
+charMethod obj m args= execMethod f_callCharMethod obj m args
 
 shortMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Int)   
-shortMethod obj m args= do
-        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callShortMethod obj mid arr))    
-        return (fromIntegral ret)
+shortMethod obj m args= execMethod f_callShortMethod obj m args
 
 byteMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Int)   
-byteMethod obj m args= do
-        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callByteMethod obj mid arr))   
-        return (fromIntegral ret)
+byteMethod obj m args= execMethod f_callByteMethod obj m args
   
 longMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Integer)   
-longMethod obj m args= do
-        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callLongMethod obj mid arr))  
-        return (fromIntegral ret)  
+longMethod obj m args= execMethod f_callLongMethod obj m args
         
 floatMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Float)   
-floatMethod obj m args= do
-        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callFloatMethod obj mid arr))    
-        return $ realToFrac ret          
+floatMethod obj m args= execMethod f_callFloatMethod obj m args   
 
 doubleMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (Double)   
-doubleMethod obj m args= do
-        ret<- withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callDoubleMethod obj mid arr))    
-        return $ realToFrac ret   
+doubleMethod obj m args= execMethod f_callDoubleMethod obj m args
         
 objectMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (JObjectPtr)   
-objectMethod obj m args= 
-        withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callObjectMethod obj mid arr))    
-        
+objectMethod obj m args= execMethod f_callObjectMethod obj m args
+
+execStaticMethod :: (HaskellJavaConversion h j,WithJava m) => 
+        (JClassPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO j)
+        -> JClassPtr -> Method -> [JValue] -> m h
+execStaticMethod f cls m args = javaToHaskell $ withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f cls mid arr)) 
         
 staticIntMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Integer)   
-staticIntMethod cls m args= do
-        ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticIntMethod cls mid arr))    
-        return (fromIntegral ret)        
+staticIntMethod cls m args= execStaticMethod f_callStaticIntMethod cls m args
+
+staticBooleanMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Bool)   
+staticBooleanMethod cls m args= execStaticMethod f_callStaticBooleanMethod cls m args
 
 staticCharMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Char)   
-staticCharMethod cls m args= do
-        ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticCharMethod cls mid arr))   
-        return (toEnum $ fromIntegral ret)
+staticCharMethod cls m args= execStaticMethod f_callStaticCharMethod cls m args
 
 staticShortMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Int)   
-staticShortMethod cls m args= do
-        ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticShortMethod cls mid arr))    
-        return (fromIntegral ret)
+staticShortMethod cls m args= execStaticMethod f_callStaticShortMethod cls m args
 
 staticByteMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Int)   
-staticByteMethod cls m args= do
-        ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticByteMethod cls mid arr))   
-        return (fromIntegral ret)
+staticByteMethod cls m args= execStaticMethod f_callStaticByteMethod cls m args
   
 staticLongMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Integer)   
-staticLongMethod cls m args= do
-        ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticLongMethod cls mid arr))  
-        return (fromIntegral ret)  
+staticLongMethod cls m args= execStaticMethod f_callStaticLongMethod cls m args
         
 staticFloatMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Float)   
-staticFloatMethod cls m args= do
-        ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticFloatMethod cls mid arr))    
-        return $ realToFrac ret          
-
+staticFloatMethod cls m args= execStaticMethod f_callStaticFloatMethod cls m args
+  
 staticDoubleMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Double)   
-staticDoubleMethod cls m args= do
-        ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticDoubleMethod cls mid arr))    
-        return $ realToFrac ret   
+staticDoubleMethod cls m args= execStaticMethod f_callStaticDoubleMethod cls m args
         
 staticObjectMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (JObjectPtr)   
-staticObjectMethod cls m args= 
-        withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticObjectMethod cls mid arr))    
-        
-        
+staticObjectMethod cls m args= execStaticMethod f_callStaticObjectMethod cls m args
+
+getStaticField :: (HaskellJavaConversion h j,WithJava m) => 
+        (JClassPtr -> JFieldPtr -> CWString-> IO j)
+        -> JClassPtr -> Field -> m h
+getStaticField f cls fi = javaToHaskell $ withStaticField fi (\fid->liftIO $ handleException $ f cls fid) 
+
+getStaticIntField :: (WithJava m) =>JClassPtr -> Field -> m (Integer)   
+getStaticIntField cls f= getStaticField f_getStaticIntField cls f
+
+getStaticBooleanField :: (WithJava m) =>JClassPtr -> Field -> m (Bool)   
+getStaticBooleanField cls f= getStaticField f_getStaticBooleanField cls f
+
+getStaticCharField :: (WithJava m) =>JClassPtr -> Field -> m (Char)   
+getStaticCharField cls f= getStaticField f_getStaticCharField cls f
+
+getStaticShortField :: (WithJava m) =>JClassPtr -> Field -> m (Int)   
+getStaticShortField cls f= getStaticField f_getStaticShortField cls f
+
+getStaticByteField :: (WithJava m) =>JClassPtr -> Field -> m (Int)   
+getStaticByteField cls f= getStaticField f_getStaticByteField cls f
+
+getStaticLongField :: (WithJava m) =>JClassPtr -> Field -> m (Integer)   
+getStaticLongField cls f= getStaticField f_getStaticLongField cls f
+
+getStaticDoubleField :: (WithJava m) =>JClassPtr -> Field -> m (Double)   
+getStaticDoubleField cls f= getStaticField f_getStaticDoubleField cls f
+
+getStaticFloatField :: (WithJava m) =>JClassPtr -> Field -> m (Float)   
+getStaticFloatField cls f= getStaticField f_getStaticFloatField cls f
+
+getStaticObjectField :: (WithJava m) =>JClassPtr -> Field -> m (JObjectPtr)   
+getStaticObjectField cls f= getStaticField f_getStaticObjectField cls f
+
 
 toJString :: (MonadIO m) => String -> m (JObjectPtr) 
 toJString s=  liftIO $ withCWString s (\cs->handleException $ f_newString cs (fromIntegral $ length s))

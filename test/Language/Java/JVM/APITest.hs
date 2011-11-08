@@ -14,7 +14,7 @@ import Test.HUnit
 apiTests::[Test]
 apiTests=[testStart,testClassNotFound,testMethodNotFound,testNewString,testIntMethod,testCharMethod,testByteMethod
         ,testShortMethod,testLongMethod,testDoubleMethod,testFloatMethod,testBooleanMethod,testObjectMethod,testException
-        ,testStaticIntMethod,testStaticObjectMethod
+        ,testStaticIntMethod,testStaticObjectMethod,testStaticIntField
         ,testEnd]
 
 testStart :: Test
@@ -175,6 +175,16 @@ testStaticObjectMethod=TestLabel "testStaticObjectMethod" (TestCase (do
                 liftIO $ assertBool "testStaticObjectMethod" (nullPtr/=jo)
                 liftIO $ f_freeClass jc
                 liftIO $ f_freeObject jo
+                return ())
+        ))      
+   
+testStaticIntField   :: Test
+testStaticIntField=TestLabel "testStaticIntField" (TestCase (do
+        withJava' False "" (do
+                jc<-findClass "java/lang/Integer"
+                l<-getStaticIntField jc (Field "java/lang/Integer" "MAX_VALUE" "I")
+                liftIO $ assertBool "testStaticIntField" (l>0)
+                liftIO $ f_freeClass jc
                 return ())
         ))      
    
