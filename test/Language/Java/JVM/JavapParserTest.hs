@@ -8,8 +8,8 @@ import System.Environment
 
 import Test.HUnit
 
-javapParserTests::Test
-javapParserTests=TestList[testObject,testString]
+javapParserTests::[Test]
+javapParserTests=[testObject,testString]
 
 parse :: String -> IO (Maybe TypeDecl)
 parse cls=do

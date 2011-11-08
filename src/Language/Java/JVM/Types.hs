@@ -19,6 +19,9 @@ type JMethodPtr=Ptr JMethod
 --data JRuntime
 --type JRuntimePtr=Ptr JRuntime
 
+newtype TypedJObjectPtr a=TypedJObjectPtr JObjectPtr
+        deriving (Eq,Show)
+        
 data JEnv
 type JEnvPtr=Ptr JEnv
 

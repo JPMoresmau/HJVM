@@ -11,9 +11,10 @@ import Foreign.Ptr
 import System.IO.Error
 import Test.HUnit
 
-apiTests::Test
-apiTests=TestList[testStart,testClassNotFound,testMethodNotFound,testNewString,testIntMethod,testCharMethod,testByteMethod
+apiTests::[Test]
+apiTests=[testStart,testClassNotFound,testMethodNotFound,testNewString,testIntMethod,testCharMethod,testByteMethod
         ,testShortMethod,testLongMethod,testDoubleMethod,testFloatMethod,testBooleanMethod,testObjectMethod,testException
+        ,testStaticIntMethod
         ,testEnd]
 
 testStart :: Test
@@ -136,6 +137,7 @@ testBooleanMethod=TestLabel "testBooleanMethod" (TestCase (do
         withJava' False "" (do
                 jo<-toJString "hello"
                 l<-booleanMethod jo (Method "java/lang/String" "equals" "(Ljava/lang/Object;)Z") [JObj jo]
+                liftIO $ f_freeObject jo
                 liftIO $ assertBool "equals" l
                 return ())
         ))
@@ -145,10 +147,24 @@ testObjectMethod=TestLabel "testObjectMethod" (TestCase (do
         withJava' False "" (do
                 jo<-newObject "java/lang/Integer" "(I)V" [JInt 25]
                 s<-objectMethod jo (Method "java/lang/Object" "toString" "()Ljava/lang/String;") []
+                liftIO $ f_freeObject jo
                 freeClass "java/lang/Integer"
                 liftIO $ assertBool "toString" (nullPtr/=s)
                 return ())
         ))     
+   
+   
+testStaticIntMethod :: Test
+testStaticIntMethod=TestLabel "testStaticIntMethod" (TestCase (do
+        withJava' False "" (do
+                jo<-toJString "5"
+                jc<-findClass "java/lang/Integer"
+                l<-staticIntMethod jc (Method "java/lang/Integer" "parseInt" "(Ljava/lang/String;)I") [JObj jo]
+                liftIO $ f_freeClass jc
+                liftIO $ f_freeObject jo
+                liftIO $ assertEqual "parseInt" 5 l
+                return ())
+        ))   
    
 testException :: Test        
 testException=TestLabel "testException" (TestCase (do

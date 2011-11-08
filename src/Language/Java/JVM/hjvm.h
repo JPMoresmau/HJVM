@@ -24,6 +24,8 @@ void freeObject(jobject global);
 
 jmethodID findMethod(const jclass cls,const char *method,const char *signature);
 
+jmethodID findStaticMethod(const jclass cls,const char *method,const char *signature);
+
 void registerCallback(const char *clsName,const char *methodName,const char *eventClsName,eventCallback f);
 
 jobject newObject(const jclass cls, const jmethodID method,const jvalue *args,jchar *error);
@@ -50,5 +52,6 @@ jfloat callFloatMethod(const jobject obj,const jmethodID method,const jvalue *ar
 
 jobject callObjectMethod(const jobject obj,const jmethodID method,const jvalue *args,jchar *error);
 
+jint callStaticIntMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error);
 
 #endif

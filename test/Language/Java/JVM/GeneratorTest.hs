@@ -7,12 +7,13 @@ import Language.Haskell.Exts.Pretty
 
 import Test.HUnit
 
-generatorTests :: Test
-generatorTests = TestList [testObject]
+generatorTests :: [Test]
+generatorTests = [testObject]
 
 testObject :: Test
 testObject=TestLabel "testObject" (TestCase (do
         Just td<-parse "java/lang/Object"
         let (mod,fp)=generate td
         putStrLn $ prettyPrint mod
+        writeFile ("D:\\Documents\\Perso\\workspace\\HJVMBindings\\src\\Language\\Java\\JVM\\Bindings\\"++fp) (prettyPrint mod)
         ))

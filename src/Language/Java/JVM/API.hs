@@ -24,6 +24,7 @@ foreign import ccall safe "findClass" f_findClass :: CString -> IO (JClassPtr)
 foreign import ccall safe "freeClass" f_freeClass :: JClassPtr -> IO ()
 foreign import ccall safe "freeObject" f_freeObject :: JObjectPtr -> IO ()
 foreign import ccall safe "findMethod" f_findMethod :: JClassPtr -> CString -> CString -> IO (JMethodPtr)
+foreign import ccall safe "findStaticMethod" f_findStaticMethod :: JClassPtr -> CString -> CString -> IO (JMethodPtr)
 foreign import ccall safe "newObject" f_newObject :: JClassPtr -> JMethodPtr -> JValuePtr -> CWString -> IO (JObjectPtr)
 foreign import ccall safe "newString" f_newString :: CWString -> CLong  -> CWString-> IO (JObjectPtr)
 
@@ -37,6 +38,8 @@ foreign import ccall safe "callShortMethod" f_callShortMethod ::  JObjectPtr -> 
 foreign import ccall safe "callFloatMethod" f_callFloatMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CFloat)
 foreign import ccall safe "callDoubleMethod" f_callDoubleMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CDouble)
 foreign import ccall safe "callObjectMethod" f_callObjectMethod ::  JObjectPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (JObjectPtr)
+
+foreign import ccall safe "callStaticIntMethod" f_callStaticIntMethod :: JClassPtr -> JMethodPtr -> JValuePtr  -> CWString-> IO (CLong)
 
 foreign import ccall safe "registerCallback" f_registerCallback :: CString -> CString -> CString -> FunPtr CallbackInternal -> IO()
 
@@ -126,9 +129,30 @@ findMethod meth=do
                         putJavaCache (jc{jc_methods=Map.insert meth ptr $ jc_methods jc})
                         return ptr)
 
+findStaticMethod :: (WithJava m) => Method -> m JMethodPtr
+findStaticMethod meth=do
+        jc<-getJavaCache
+        let mptr=Map.lookup meth (jc_methods jc)
+        case mptr of
+              Just ptr->return ptr
+              Nothing -> do
+                withClass (m_class meth) (\cls->do
+                        ptr<- liftIO $ withCString (m_name meth)
+                                (\m->withCString (m_signature meth)
+                                        (\s->f_findStaticMethod cls m s
+                                                ))
+                        putJavaCache (jc{jc_methods=Map.insert meth ptr $ jc_methods jc})
+                        return ptr)
+
 withMethod :: (WithJava m) =>  Method -> (JMethodPtr -> m a) -> m a
 withMethod mp f=do
         mid<-findMethod mp
+        when (mid==nullPtr) (liftIO $ ioError $ userError $ printf "method %s not found" $ show mp)
+        f mid
+
+withStaticMethod :: (WithJava m) =>  Method -> (JMethodPtr -> m a) -> m a
+withStaticMethod mp f=do
+        mid<-findStaticMethod mp
         when (mid==nullPtr) (liftIO $ ioError $ userError $ printf "method %s not found" $ show mp)
         f mid
 
@@ -231,6 +255,11 @@ objectMethod :: (WithJava m) =>JObjectPtr -> Method -> [JValue] -> m (JObjectPtr
 objectMethod obj m args= 
         withMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callObjectMethod obj mid arr))    
         
+        
+staticIntMethod :: (WithJava m) =>JClassPtr -> Method -> [JValue] -> m (Integer)   
+staticIntMethod cls m args= do
+        ret<- withStaticMethod m (\mid->liftIO $ withArray args (\arr->handleException $ f_callStaticIntMethod cls mid arr))    
+        return (fromIntegral ret)        
         
 toJString :: (MonadIO m) => String -> m (JObjectPtr) 
 toJString s=  liftIO $ withCWString s (\cs->handleException $ f_newString cs (fromIntegral $ length s))

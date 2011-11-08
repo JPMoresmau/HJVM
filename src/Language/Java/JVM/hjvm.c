@@ -5,7 +5,6 @@
 
 #include "hjvm.h"
 
-
 /*eventCallback *eventCb;
 
 void event(JNIEnv *env, jobject listener,jint index,jobject event){
@@ -121,6 +120,15 @@ jmethodID findMethod(const jclass cls,const char *method,const char *signature){
 	JNIEnv *env=getEnv(getJVM());
 	jmethodID mid;
 	mid=(*env)->GetMethodID(env, cls, method,
+			 signature);
+	(*env)->ExceptionClear(env);
+	return mid;
+}
+
+jmethodID findStaticMethod(const jclass cls,const char *method,const char *signature){
+	JNIEnv *env=getEnv(getJVM());
+	jmethodID mid;
+	mid=(*env)->GetStaticMethodID(env, cls, method,
 			 signature);
 	(*env)->ExceptionClear(env);
 	return mid;
@@ -248,6 +256,13 @@ jobject callObjectMethod(const jobject obj,const jmethodID method,const jvalue *
 	jobject global=(*env)->NewGlobalRef(env, local);
 	(*env)->DeleteLocalRef(env, local);
 	return global;
+}
+
+jint callStaticIntMethod(const jclass cls,const jmethodID method,const jvalue *args,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jint ret=(*env)-> CallStaticIntMethodA (env,cls,method,args);
+	handleException(env,error);
+	return ret;
 }
 
 jstring newString(const jchar *unicode, jsize len,jchar *error){
