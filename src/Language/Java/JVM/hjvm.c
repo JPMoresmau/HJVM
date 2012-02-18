@@ -423,6 +423,60 @@ jobject getStaticObjectField(const jclass cls,const jfieldID field,jchar *error)
 	return global;
 }
 
+void setStaticIntField(const jclass cls,const jfieldID field,jint val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetStaticIntField (env,cls,field,val);
+	handleException(env,error);
+}
+
+void setStaticBooleanField(const jclass cls,const jfieldID field,jboolean val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetStaticBooleanField (env,cls,field,val);
+	handleException(env,error);
+}
+
+void setStaticCharField(const jclass cls,const jfieldID field,jchar val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetStaticCharField (env,cls,field,val);
+	handleException(env,error);
+}
+
+void setStaticShortField(const jclass cls,const jfieldID field,jshort val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetStaticShortField (env,cls,field,val);
+	handleException(env,error);
+}
+
+void setStaticByteField(const jclass cls,const jfieldID field,jbyte val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetStaticByteField (env,cls,field,val);
+	handleException(env,error);
+}
+
+void setStaticLongField(const jclass cls,const jfieldID field,jlong val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetStaticLongField (env,cls,field,val);
+	handleException(env,error);
+}
+
+void setStaticDoubleField(const jclass cls,const jfieldID field,jdouble val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetStaticDoubleField (env,cls,field,val);
+	handleException(env,error);
+}
+
+void setStaticFloatField(const jclass cls,const jfieldID field,jfloat val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetStaticFloatField (env,cls,field,val);
+	handleException(env,error);
+}
+
+void setStaticObjectField(const jclass cls,const jfieldID field,jobject val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetStaticObjectField (env,cls,field,val);
+	handleException(env,error);
+}
+
 /*
 int test(int jvmid){
 	 jclass cls;

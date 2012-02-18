@@ -62,6 +62,15 @@ foreign import ccall safe "getStaticDoubleField" f_getStaticDoubleField :: JClas
 foreign import ccall safe "getStaticFloatField" f_getStaticFloatField :: JClassPtr -> JFieldPtr -> CWString-> IO (CFloat)
 foreign import ccall safe "getStaticObjectField" f_getStaticObjectField :: JClassPtr -> JFieldPtr -> CWString-> IO (JObjectPtr)
 
+foreign import ccall safe "setStaticIntField" f_setStaticIntField :: JClassPtr -> JFieldPtr-> CLong  -> CWString -> IO ()
+foreign import ccall safe "setStaticBooleanField" f_setStaticBooleanField :: JClassPtr -> JFieldPtr-> CUChar -> CWString -> IO ()
+foreign import ccall safe "setStaticCharField" f_setStaticCharField :: JClassPtr -> JFieldPtr-> CUShort  -> CWString-> IO ()
+foreign import ccall safe "setStaticShortField" f_setStaticShortField :: JClassPtr -> JFieldPtr-> CShort -> CWString -> IO ()
+foreign import ccall safe "setStaticByteField" f_setStaticByteField :: JClassPtr -> JFieldPtr -> CChar -> CWString-> IO ()
+foreign import ccall safe "setStaticLongField" f_setStaticLongField :: JClassPtr -> JFieldPtr -> CLong -> CWString-> IO ()
+foreign import ccall safe "setStaticDoubleField" f_setStaticDoubleField :: JClassPtr -> JFieldPtr-> CDouble  -> CWString-> IO ()
+foreign import ccall safe "setStaticFloatField" f_setStaticFloatField :: JClassPtr -> JFieldPtr-> CFloat -> CWString -> IO ()
+foreign import ccall safe "setStaticObjectField" f_setStaticObjectField :: JClassPtr -> JFieldPtr -> JObjectPtr -> CWString -> IO ()
 
 foreign import ccall safe "registerCallback" f_registerCallback :: CString -> CString -> CString -> FunPtr CallbackInternal -> IO()
 
@@ -345,31 +354,63 @@ getStaticField :: (HaskellJavaConversion h j,WithJava m) =>
 getStaticField f cls fi = javaToHaskell $ withStaticField fi (\fid->liftIO $ handleException $ f cls fid) 
 
 getStaticIntField :: (WithJava m) =>JClassPtr -> Field -> m (Integer)   
-getStaticIntField cls f= getStaticField f_getStaticIntField cls f
+getStaticIntField = getStaticField f_getStaticIntField 
 
 getStaticBooleanField :: (WithJava m) =>JClassPtr -> Field -> m (Bool)   
-getStaticBooleanField cls f= getStaticField f_getStaticBooleanField cls f
+getStaticBooleanField = getStaticField f_getStaticBooleanField 
 
 getStaticCharField :: (WithJava m) =>JClassPtr -> Field -> m (Char)   
-getStaticCharField cls f= getStaticField f_getStaticCharField cls f
+getStaticCharField = getStaticField f_getStaticCharField 
 
 getStaticShortField :: (WithJava m) =>JClassPtr -> Field -> m (Int)   
-getStaticShortField cls f= getStaticField f_getStaticShortField cls f
+getStaticShortField = getStaticField f_getStaticShortField 
 
 getStaticByteField :: (WithJava m) =>JClassPtr -> Field -> m (Int)   
-getStaticByteField cls f= getStaticField f_getStaticByteField cls f
+getStaticByteField= getStaticField f_getStaticByteField 
 
 getStaticLongField :: (WithJava m) =>JClassPtr -> Field -> m (Integer)   
-getStaticLongField cls f= getStaticField f_getStaticLongField cls f
+getStaticLongField = getStaticField f_getStaticLongField
 
 getStaticDoubleField :: (WithJava m) =>JClassPtr -> Field -> m (Double)   
-getStaticDoubleField cls f= getStaticField f_getStaticDoubleField cls f
+getStaticDoubleField= getStaticField f_getStaticDoubleField
 
 getStaticFloatField :: (WithJava m) =>JClassPtr -> Field -> m (Float)   
-getStaticFloatField cls f= getStaticField f_getStaticFloatField cls f
+getStaticFloatField= getStaticField f_getStaticFloatField
 
 getStaticObjectField :: (WithJava m) =>JClassPtr -> Field -> m (JObjectPtr)   
-getStaticObjectField cls f= getStaticField f_getStaticObjectField cls f
+getStaticObjectField= getStaticField f_getStaticObjectField
+
+setStaticField :: (HaskellJavaConversion h j,WithJava m) => 
+        (JClassPtr -> JFieldPtr -> j -> CWString  -> IO ())
+        -> JClassPtr -> Field -> h -> m ()
+setStaticField f cls fi v= withStaticField fi (\fid->liftIO $ handleException $ f cls fid $ fromHaskell v) 
+
+setStaticIntField :: (WithJava m) =>JClassPtr -> Field -> Integer -> m ()   
+setStaticIntField = setStaticField f_setStaticIntField
+
+setStaticBooleanField :: (WithJava m) =>JClassPtr -> Field -> Bool -> m ()   
+setStaticBooleanField = setStaticField f_setStaticBooleanField
+
+setStaticCharField :: (WithJava m) =>JClassPtr -> Field -> Char -> m ()   
+setStaticCharField = setStaticField f_setStaticCharField
+
+setStaticShortField :: (WithJava m) =>JClassPtr -> Field -> Int -> m ()   
+setStaticShortField = setStaticField f_setStaticShortField
+
+setStaticByteField :: (WithJava m) =>JClassPtr -> Field -> Int -> m ()   
+setStaticByteField = setStaticField f_setStaticByteField
+
+setStaticLongField :: (WithJava m) =>JClassPtr -> Field -> Integer -> m ()   
+setStaticLongField = setStaticField f_setStaticLongField
+
+setStaticDoubleField :: (WithJava m) =>JClassPtr -> Field -> Double -> m ()   
+setStaticDoubleField = setStaticField f_setStaticDoubleField
+
+setStaticFloatField :: (WithJava m) =>JClassPtr -> Field -> Float -> m ()   
+setStaticFloatField = setStaticField f_setStaticFloatField
+
+setStaticObjectField :: (WithJava m) =>JClassPtr -> Field -> JObjectPtr -> m ()   
+setStaticObjectField = setStaticField f_setStaticObjectField
 
 
 toJString :: (MonadIO m) => String -> m (JObjectPtr) 

@@ -106,31 +106,44 @@ instance WithJava JavaT where
 
 javaToHaskell :: (HaskellJavaConversion h j,WithJava m)=> m j -> m h
 javaToHaskell = liftM toHaskell
+
+haskellToJava :: (HaskellJavaConversion h j,WithJava m)=> m h -> m j
+haskellToJava = liftM fromHaskell
         
 class HaskellJavaConversion h j where
         toHaskell :: j -> h
+        fromHaskell :: h -> j
         
 instance HaskellJavaConversion Float CFloat where
         toHaskell = realToFrac
+        fromHaskell = realToFrac
         
 instance HaskellJavaConversion Double CDouble where
         toHaskell = realToFrac
+        fromHaskell = realToFrac
                 
 instance HaskellJavaConversion Integer CLong where
         toHaskell = fromIntegral
+        fromHaskell = fromIntegral
         
 instance HaskellJavaConversion Int CChar where
-        toHaskell = fromIntegral          
+        toHaskell = fromIntegral  
+        fromHaskell = fromIntegral        
         
 instance HaskellJavaConversion Int CShort where
-        toHaskell = fromIntegral    
+        toHaskell = fromIntegral  
+        fromHaskell = fromIntegral  
 
 instance HaskellJavaConversion Bool CUChar where
-        toHaskell = (0 /=)      
+        toHaskell = (0 /=)   
+        fromHaskell True = 1
+        fromHaskell False = 0   
 
 instance HaskellJavaConversion Char CUShort where
         toHaskell = toEnum . fromIntegral
+        fromHaskell = fromIntegral . fromEnum
 
 instance HaskellJavaConversion JObjectPtr JObjectPtr where
-        toHaskell = id        
+        toHaskell = id    
+        fromHaskell = id    
           

@@ -61,4 +61,13 @@ jdouble getStaticDoubleField(const jclass cls,const jfieldID field,jchar *error)
 jfloat getStaticFloatField(const jclass cls,const jfieldID field,jchar *error);
 jobject getStaticObjectField(const jclass cls,const jfieldID field,jchar *error);
 
+jvoid setStaticIntField(const jclass cls,const jfieldID field,jint val,jchar *error);
+jvoid setStaticBooleanField(const jclass cls,const jfieldID field,jboolean val,jchar *error);
+jvoid setStaticCharField(const jclass cls,const jfieldID field,jchart val,jchar *error);
+jvoid setStaticShortField(const jclass cls,const jfieldID field,jshort val,jchar *error);
+jvoid setStaticByteField(const jclass cls,const jfieldID field,jbyte val,jchar *error);
+jvoid setStaticLongField(const jclass cls,const jfieldID field,jlong val,jchar *error);
+jvoid setStaticDoubleField(const jclass cls,const jfieldID field,jdouble val,jchar *error);
+jvoid setStaticFloatField(const jclass cls,const jfieldID field,jfloat val,jchar *error);
+jvoid setStaticObjectField(const jclass cls,const jfieldID field,jobject val,jchar *error);
 #endif
