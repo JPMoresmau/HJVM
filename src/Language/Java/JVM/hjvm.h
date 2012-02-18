@@ -61,13 +61,34 @@ jdouble getStaticDoubleField(const jclass cls,const jfieldID field,jchar *error)
 jfloat getStaticFloatField(const jclass cls,const jfieldID field,jchar *error);
 jobject getStaticObjectField(const jclass cls,const jfieldID field,jchar *error);
 
-jvoid setStaticIntField(const jclass cls,const jfieldID field,jint val,jchar *error);
-jvoid setStaticBooleanField(const jclass cls,const jfieldID field,jboolean val,jchar *error);
-jvoid setStaticCharField(const jclass cls,const jfieldID field,jchart val,jchar *error);
-jvoid setStaticShortField(const jclass cls,const jfieldID field,jshort val,jchar *error);
-jvoid setStaticByteField(const jclass cls,const jfieldID field,jbyte val,jchar *error);
-jvoid setStaticLongField(const jclass cls,const jfieldID field,jlong val,jchar *error);
-jvoid setStaticDoubleField(const jclass cls,const jfieldID field,jdouble val,jchar *error);
-jvoid setStaticFloatField(const jclass cls,const jfieldID field,jfloat val,jchar *error);
-jvoid setStaticObjectField(const jclass cls,const jfieldID field,jobject val,jchar *error);
+void setStaticIntField(const jclass cls,const jfieldID field,jint val,jchar *error);
+void setStaticBooleanField(const jclass cls,const jfieldID field,jboolean val,jchar *error);
+void setStaticCharField(const jclass cls,const jfieldID field,jchar val,jchar *error);
+void setStaticShortField(const jclass cls,const jfieldID field,jshort val,jchar *error);
+void setStaticByteField(const jclass cls,const jfieldID field,jbyte val,jchar *error);
+void setStaticLongField(const jclass cls,const jfieldID field,jlong val,jchar *error);
+void setStaticDoubleField(const jclass cls,const jfieldID field,jdouble val,jchar *error);
+void setStaticFloatField(const jclass cls,const jfieldID field,jfloat val,jchar *error);
+void setStaticObjectField(const jclass cls,const jfieldID field,jobject val,jchar *error);
+
+jint getIntField(const jobject obj,const jfieldID field,jchar *error);
+jboolean getBooleanField(const jobject obj,const jfieldID field,jchar *error);
+jchar getCharField(const jobject obj,const jfieldID field,jchar *error);
+jshort getShortField(const jobject obj,const jfieldID field,jchar *error);
+jbyte getByteField(const jobject obj,const jfieldID field,jchar *error);
+jlong getLongField(const jobject obj,const jfieldID field,jchar *error);
+jdouble getDoubleField(const jobject obj,const jfieldID field,jchar *error);
+jfloat getFloatField(const jobject obj,const jfieldID field,jchar *error);
+jobject getObjectField(const jobject obj,const jfieldID field,jchar *error);
+
+void setIntField(const jobject obj,const jfieldID field,jint val,jchar *error);
+void setBooleanField(const jobject obj,const jfieldID field,jboolean val,jchar *error);
+void setCharField(const jobject obj,const jfieldID field,jchar val,jchar *error);
+void setShortField(const jobject obj,const jfieldID field,jshort val,jchar *error);
+void setByteField(const jobject obj,const jfieldID field,jbyte val,jchar *error);
+void setLongField(const jobject obj,const jfieldID field,jlong val,jchar *error);
+void setDoubleField(const jobject obj,const jfieldID field,jdouble val,jchar *error);
+void setFloatField(const jobject obj,const jfieldID field,jfloat val,jchar *error);
+void setObjectField(const jobject obj,const jfieldID field,jobject val,jchar *error);
+
 #endif

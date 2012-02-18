@@ -477,6 +477,126 @@ void setStaticObjectField(const jclass cls,const jfieldID field,jobject val,jcha
 	handleException(env,error);
 }
 
+jint getIntField(const jobject obj,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jint ret=(*env)-> GetIntField (env,obj,field);
+	handleException(env,error);
+	return ret;
+}
+
+jboolean getBooleanField(const jobject obj,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jboolean ret=(*env)-> GetBooleanField (env,obj,field);
+	handleException(env,error);
+	return ret;
+}
+
+jchar getCharField(const jobject obj,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jchar ret=(*env)-> GetCharField (env,obj,field);
+	handleException(env,error);
+	return ret;
+}
+
+jshort getShortField(const jobject obj,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jshort ret=(*env)-> GetShortField (env,obj,field);
+	handleException(env,error);
+	return ret;
+}
+
+jbyte getByteField(const jobject obj,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jbyte ret=(*env)-> GetByteField (env,obj,field);
+	handleException(env,error);
+	return ret;
+}
+
+jlong getLongField(const jobject obj,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jlong ret=(*env)-> GetLongField (env,obj,field);
+	handleException(env,error);
+	return ret;
+}
+
+jdouble getDoubleField(const jobject obj,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jdouble ret=(*env)-> GetDoubleField (env,obj,field);
+	handleException(env,error);
+	return ret;
+}
+
+jfloat getFloatField(const jobject obj,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jfloat ret=(*env)-> GetFloatField (env,obj,field);
+	handleException(env,error);
+	return ret;
+}
+
+jobject getObjectField(const jobject obj,const jfieldID field,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	jobject local=(*env)-> GetObjectField (env,obj,field);
+	handleException(env,error);
+	jobject global=(*env)->NewGlobalRef(env, local);
+	(*env)->DeleteLocalRef(env, local);
+	return global;
+}
+
+void setIntField(const jobject obj,const jfieldID field,jint val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetIntField (env,obj,field,val);
+	handleException(env,error);
+}
+
+void setBooleanField(const jobject obj,const jfieldID field,jboolean val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetBooleanField (env,obj,field,val);
+	handleException(env,error);
+}
+
+void setCharField(const jobject obj,const jfieldID field,jchar val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetCharField (env,obj,field,val);
+	handleException(env,error);
+}
+
+void setShortField(const jobject obj,const jfieldID field,jshort val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetShortField (env,obj,field,val);
+	handleException(env,error);
+}
+
+void setByteField(const jobject obj,const jfieldID field,jbyte val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetByteField (env,obj,field,val);
+	handleException(env,error);
+}
+
+void setLongField(const jobject obj,const jfieldID field,jlong val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetLongField (env,obj,field,val);
+	handleException(env,error);
+}
+
+void setDoubleField(const jobject obj,const jfieldID field,jdouble val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetDoubleField (env,obj,field,val);
+	handleException(env,error);
+}
+
+void setFloatField(const jobject obj,const jfieldID field,jfloat val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetFloatField (env,obj,field,val);
+	handleException(env,error);
+}
+
+void setObjectField(const jobject obj,const jfieldID field,jobject val,jchar *error){
+	JNIEnv *env=getEnv(getJVM());
+	(*env)-> SetObjectField (env,obj,field,val);
+	handleException(env,error);
+}
+
+
 /*
 int test(int jvmid){
 	 jclass cls;

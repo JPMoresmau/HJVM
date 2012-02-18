@@ -72,6 +72,26 @@ foreign import ccall safe "setStaticDoubleField" f_setStaticDoubleField :: JClas
 foreign import ccall safe "setStaticFloatField" f_setStaticFloatField :: JClassPtr -> JFieldPtr-> CFloat -> CWString -> IO ()
 foreign import ccall safe "setStaticObjectField" f_setStaticObjectField :: JClassPtr -> JFieldPtr -> JObjectPtr -> CWString -> IO ()
 
+foreign import ccall safe "getIntField" f_getIntField :: JObjectPtr -> JFieldPtr -> CWString-> IO (CLong)
+foreign import ccall safe "getBooleanField" f_getBooleanField :: JObjectPtr -> JFieldPtr -> CWString-> IO (CUChar)
+foreign import ccall safe "getCharField" f_getCharField :: JObjectPtr -> JFieldPtr -> CWString-> IO (CUShort)
+foreign import ccall safe "getShortField" f_getShortField :: JObjectPtr -> JFieldPtr -> CWString-> IO (CShort)
+foreign import ccall safe "getByteField" f_getByteField :: JObjectPtr -> JFieldPtr -> CWString-> IO (CChar)
+foreign import ccall safe "getLongField" f_getLongField :: JObjectPtr -> JFieldPtr -> CWString-> IO (CLong)
+foreign import ccall safe "getDoubleField" f_getDoubleField :: JObjectPtr -> JFieldPtr -> CWString-> IO (CDouble)
+foreign import ccall safe "getFloatField" f_getFloatField :: JObjectPtr -> JFieldPtr -> CWString-> IO (CFloat)
+foreign import ccall safe "getObjectField" f_getObjectField :: JObjectPtr -> JFieldPtr -> CWString-> IO (JObjectPtr)
+
+foreign import ccall safe "setIntField" f_setIntField :: JObjectPtr -> JFieldPtr-> CLong  -> CWString -> IO ()
+foreign import ccall safe "setBooleanField" f_setBooleanField :: JObjectPtr -> JFieldPtr-> CUChar -> CWString -> IO ()
+foreign import ccall safe "setCharField" f_setCharField :: JObjectPtr -> JFieldPtr-> CUShort  -> CWString-> IO ()
+foreign import ccall safe "setShortField" f_setShortField :: JObjectPtr -> JFieldPtr-> CShort -> CWString -> IO ()
+foreign import ccall safe "setByteField" f_setByteField :: JObjectPtr -> JFieldPtr -> CChar -> CWString-> IO ()
+foreign import ccall safe "setLongField" f_setLongField :: JObjectPtr -> JFieldPtr -> CLong -> CWString-> IO ()
+foreign import ccall safe "setDoubleField" f_setDoubleField :: JObjectPtr -> JFieldPtr-> CDouble  -> CWString-> IO ()
+foreign import ccall safe "setFloatField" f_setFloatField :: JObjectPtr -> JFieldPtr-> CFloat -> CWString -> IO ()
+foreign import ccall safe "setObjectField" f_setObjectField :: JObjectPtr -> JFieldPtr -> JObjectPtr -> CWString -> IO ()
+
 foreign import ccall safe "registerCallback" f_registerCallback :: CString -> CString -> CString -> FunPtr CallbackInternal -> IO()
 
 foreign import ccall "wrapper" wrap :: CallbackInternal -> IO (FunPtr CallbackInternal)
@@ -411,6 +431,71 @@ setStaticFloatField = setStaticField f_setStaticFloatField
 
 setStaticObjectField :: (WithJava m) =>JClassPtr -> Field -> JObjectPtr -> m ()   
 setStaticObjectField = setStaticField f_setStaticObjectField
+
+getField :: (HaskellJavaConversion h j,WithJava m) => 
+        (JObjectPtr -> JFieldPtr -> CWString-> IO j)
+        -> JObjectPtr -> Field -> m h
+getField f cls fi = javaToHaskell $ withField fi (\fid->liftIO $ handleException $ f cls fid) 
+
+getIntField :: (WithJava m) =>JObjectPtr -> Field -> m (Integer)   
+getIntField = getField f_getIntField 
+
+getBooleanField :: (WithJava m) =>JObjectPtr -> Field -> m (Bool)   
+getBooleanField = getField f_getBooleanField 
+
+getCharField :: (WithJava m) =>JObjectPtr -> Field -> m (Char)   
+getCharField = getField f_getCharField 
+
+getShortField :: (WithJava m) =>JObjectPtr -> Field -> m (Int)   
+getShortField = getField f_getShortField 
+
+getByteField :: (WithJava m) =>JObjectPtr -> Field -> m (Int)   
+getByteField= getField f_getByteField 
+
+getLongField :: (WithJava m) =>JObjectPtr -> Field -> m (Integer)   
+getLongField = getField f_getLongField
+
+getDoubleField :: (WithJava m) =>JObjectPtr -> Field -> m (Double)   
+getDoubleField= getField f_getDoubleField
+
+getFloatField :: (WithJava m) =>JObjectPtr -> Field -> m (Float)   
+getFloatField= getField f_getFloatField
+
+getObjectField :: (WithJava m) =>JObjectPtr -> Field -> m (JObjectPtr)   
+getObjectField= getField f_getObjectField
+
+setField :: (HaskellJavaConversion h j,WithJava m) => 
+        (JObjectPtr -> JFieldPtr -> j -> CWString  -> IO ())
+        -> JObjectPtr -> Field -> h -> m ()
+setField f cls fi v= withField fi (\fid->liftIO $ handleException $ f cls fid $ fromHaskell v) 
+
+setIntField :: (WithJava m) =>JObjectPtr -> Field -> Integer -> m ()   
+setIntField = setField f_setIntField
+
+setBooleanField :: (WithJava m) =>JObjectPtr -> Field -> Bool -> m ()   
+setBooleanField = setField f_setBooleanField
+
+setCharField :: (WithJava m) =>JObjectPtr -> Field -> Char -> m ()   
+setCharField = setField f_setCharField
+
+setShortField :: (WithJava m) =>JObjectPtr -> Field -> Int -> m ()   
+setShortField = setField f_setShortField
+
+setByteField :: (WithJava m) =>JObjectPtr -> Field -> Int -> m ()   
+setByteField = setField f_setByteField
+
+setLongField :: (WithJava m) =>JObjectPtr -> Field -> Integer -> m ()   
+setLongField = setField f_setLongField
+
+setDoubleField :: (WithJava m) =>JObjectPtr -> Field -> Double -> m ()   
+setDoubleField = setField f_setDoubleField
+
+setFloatField :: (WithJava m) =>JObjectPtr -> Field -> Float -> m ()   
+setFloatField = setField f_setFloatField
+
+setObjectField :: (WithJava m) =>JObjectPtr -> Field -> JObjectPtr -> m ()   
+setObjectField = setField f_setObjectField
+
 
 
 toJString :: (MonadIO m) => String -> m (JObjectPtr) 

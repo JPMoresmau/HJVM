@@ -14,7 +14,7 @@ import Test.HUnit
 apiTests::[Test]
 apiTests=[testStart,testClassNotFound,testMethodNotFound,testNewString,testIntMethod,testCharMethod,testByteMethod
         ,testShortMethod,testLongMethod,testDoubleMethod,testFloatMethod,testBooleanMethod,testObjectMethod,testException
-        ,testStaticIntMethod,testStaticObjectMethod,testStaticIntField
+        ,testStaticIntMethod,testStaticObjectMethod,testStaticIntField,testIntField
         ,testEnd]
 
 testStart :: Test
@@ -198,3 +198,16 @@ testException=TestLabel "testException" (TestCase (do
               Left _ ->return()
               Right _->assertFailure "should be not able to call new Integer with aa"
         ))   
+        
+testIntField :: Test
+testIntField=TestLabel "testIntField" (TestCase (do
+        withJava' False "" (do
+                pt<-newObject "java/awt/Point" "()V" []
+                let fx=Field "java/awt/Point" "x" "I"
+                x1<-getIntField pt fx
+                liftIO $ assertEqual "x1 is not 0" 0 x1
+                setIntField pt fx 100
+                x2<-getIntField pt fx
+                liftIO $ assertEqual "x2 is not 100" 100 x2
+                return ())
+        ))
