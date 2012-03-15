@@ -3,11 +3,23 @@ Version:        0.1
 Build-Type:     Simple
 cabal-version:  >= 1.8
 extra-source-files:  src/libjvm.dll.a,src/Language/Java/JVM/hjvm.h
+stability:      Experimental
+author:         JP Moresmau
+maintainer:     jp@moresmau.fr
+synopsis:       A library to create a Java Virtual Machine and manipulate Java objects
+description:    Uses FFI to access JNI to create a JVM. Then the library lets you create and manipulate Java objects. 
+                There is also a code generator to generate wrapper Haskell code
+homepage:       https://github.com/JPMoresmau/HJVM
+category:       Language
+license-file:   LICENSE
+license:        BSD3
+copyright:      Copyright 2011-2012, JP Moresmau
+extra-source-files: README.md
 
 library
   hs-source-dirs:     src 
   build-depends:      
-                      base,
+                      base < 5,
                       containers,
                       mtl,
                       transformers,
@@ -19,17 +31,14 @@ library
   includes:           src/Language/Java/JVM/hjvm.h
   c-sources:          src/Language/Java/JVM/hjvm.c
   extra-libraries:    jvm
--- d:\Documents\perso\workspace\HJVM\src 
---  extra-lib-dirs:     d:\Documents\perso\workspace\HJVM\src d:\dev\java\jdk1.6.0_30\jre\bin\client
---  include-dirs:       d:\dev\java\jdk1.6.0_30\include d:\dev\java\jdk1.6.0_30\include\win32
-  ghc-options:        -O2 -Wall -fno-warn-unused-do-bind
+  ghc-options:        -Wall -fno-warn-unused-do-bind
   
 Test-Suite hjvm-test
   type:           exitcode-stdio-1.0
   hs-source-dirs: test
   main-is:        Main.hs
   build-depends:  
-                  base,
+                  base < 5,
                   Cabal >= 1.9.2,
                   HJVM,
                   HUnit,
@@ -42,3 +51,7 @@ Test-Suite hjvm-test
   other-modules:  Language.Java.JVM.APITest, Language.Java.JVM.JavapParserTest, Language.Java.JVM.GeneratorTest, Language.Java.JVM.SignatureParserTest
   ghc-options:    -Wall -fno-warn-unused-do-bind
   x-uses-tf:       true
+
+source-repository head
+  type:     git
+  location: git://github.com/JPMoresmau/HJVM.git
