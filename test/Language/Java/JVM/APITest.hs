@@ -14,7 +14,7 @@ import Test.HUnit
 apiTests::[Test]
 apiTests=[testStart,testClassNotFound,testMethodNotFound,testNewString,testIntMethod,testCharMethod,testByteMethod
         ,testShortMethod,testLongMethod,testDoubleMethod,testFloatMethod,testBooleanMethod,testObjectMethod,testException
-        ,testStaticIntMethod,testStaticObjectMethod,testStaticIntField,testIntField
+        ,testStaticIntMethod,testStaticObjectMethod,testStaticIntField,testIntField,testInterfaceMethod
         ,testEnd]
 
 testStart :: Test
@@ -211,3 +211,16 @@ testIntField=TestLabel "testIntField" (TestCase (do
                 liftIO $ assertEqual "x2 is not 100" 100 x2
                 return ())
         ))
+        
+testInterfaceMethod :: Test
+testInterfaceMethod=TestLabel "testInterfaceMethod" (TestCase (do
+        withJava' False "" (do
+                jc<-findClass "java/text/NumberFormat"
+                jo<-staticObjectMethod jc (Method "java/text/NumberFormat" "getInstance" "()Ljava/text/NumberFormat;") []
+                s<-objectMethod jo (Method "java/text/NumberFormat" "format" "(D)Ljava/lang/String;") [JDouble 5.3]
+                liftIO $ assertBool "format" (nullPtr/=s)
+                liftIO $ f_freeObject s
+                liftIO $ f_freeObject jo
+                liftIO $ f_freeClass jc
+                )
+        ))        

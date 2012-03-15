@@ -75,7 +75,7 @@ data Method = Method {
         }
         deriving (Read,Show,Eq,Ord)
 
-data Field = Field {
+data Field= Field {
         f_class::ClassName
         ,f_name:: String
         ,f_signature:: String

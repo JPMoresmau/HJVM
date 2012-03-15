@@ -15,5 +15,5 @@ testObject=TestLabel "testObject" (TestCase (do
         Just td<-parse "java/lang/Object"
         let (mod,fp)=generate td
         putStrLn $ prettyPrint mod
-        writeFile ("D:\\Documents\\Perso\\workspace\\HJVMBindings\\src\\Language\\Java\\JVM\\Bindings\\"++fp) (prettyPrint mod)
+        -- writeFile ("../HJVMBindings/src/Language/Java/JVM/Bindings/"++fp) (prettyPrint mod)
         ))

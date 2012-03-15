@@ -124,7 +124,7 @@ registerCallBackMethod:: (WithJava m) => String -> String -> String -> m (Callba
 registerCallBackMethod cls method eventCls =do
         jc<-getJavaCache
         ior<-liftIO $ newMVar Map.empty
-        eventW<-liftIO $ wrap (event jc ior)
+        eventW<-liftIO $ wrap (event jc ior )
         liftIO $ withCString cls
                 (\clsn->withCString method
                         (\methodn->withCString eventCls

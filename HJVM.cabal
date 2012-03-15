@@ -19,8 +19,9 @@ library
   includes:           src/Language/Java/JVM/hjvm.h
   c-sources:          src/Language/Java/JVM/hjvm.c
   extra-libraries:    jvm
-  extra-lib-dirs:     d:\Documents\perso\workspace\HJVM\src d:\dev\java\jdk1.6.0_30\jre\bin\client
-  include-dirs:       d:\dev\java\jdk1.6.0_30\include d:\dev\java\jdk1.6.0_30\include\win32
+-- d:\Documents\perso\workspace\HJVM\src 
+--  extra-lib-dirs:     d:\Documents\perso\workspace\HJVM\src d:\dev\java\jdk1.6.0_30\jre\bin\client
+--  include-dirs:       d:\dev\java\jdk1.6.0_30\include d:\dev\java\jdk1.6.0_30\include\win32
   ghc-options:        -O2 -Wall -fno-warn-unused-do-bind
   
 Test-Suite hjvm-test
