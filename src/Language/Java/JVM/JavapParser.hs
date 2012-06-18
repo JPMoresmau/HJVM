@@ -78,6 +78,7 @@ decl = do
                                 ))
                         semi        
                         sign<-signature
+                        whiteSpace
                         return $ if meth
                                 then Just $ JMethodDecl name sign sta
                                 else Just $ JFieldDecl name sign sta
@@ -133,9 +134,23 @@ classList0=sepBy className comma
 
 className ::ParsecT String u Identity ClassName
 className = do
-      names<-sepBy1 identifier dot  
+      -- names<-sepBy1 identifier dot
+      names<-sepBy1 (choice [try (symbol ".."), identifier]) dot
+      optionMaybe $ angles generics  
       optionMaybe $ brackets whiteSpace
-      return $ intercalate "/" names
+      return $ intercalate "/" (filter (/= "..") names)
+
+genericsClassList :: ParsecT String u Identity [ClassName]
+genericsClassList = sepBy1 className (symbol "&")
+
+generic :: ParsecT String u Identity String
+generic = do
+    name <- choice [symbol "?", className]
+    extends <- optionMaybe (symbol "extends" >> genericsClassList)
+    return name
+
+generics ::ParsecT String u Identity [String]
+generics = sepBy generic comma
 
 static :: ParsecT String u Identity Bool
 static = do
@@ -162,6 +177,9 @@ braces ::  ParsecT String u Identity a -> ParsecT String u Identity a
 braces      = P.braces lexer
 brackets ::  ParsecT String u Identity a -> ParsecT String u Identity a  
 brackets      = P.brackets lexer
+angles ::  ParsecT String u Identity a -> ParsecT String u Identity a
+angles      = P.angles lexer
+
 
 identifier :: ParsecT String u Identity String
 identifier  = P.identifier lexer

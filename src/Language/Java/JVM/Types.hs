@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, TypeSynonymInstances, RankNTypes, ImpredicativeTypes, MultiParamTypeClasses #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, TypeSynonymInstances, RankNTypes, ImpredicativeTypes, MultiParamTypeClasses, FlexibleInstances #-}
 
 module Language.Java.JVM.Types where
 
